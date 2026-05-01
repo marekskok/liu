@@ -1,0 +1,11 @@
+Package: liulibrary
+Version: 0.1
+Date: 2026-04-30
+Title: LIU Library
+Description: Implements SQL-like indexes for data frames
+Authors@R: c(person("Marek", "Skok", role = c("aut", "cre"),
+                     email = "marekskok@pw.edu.pl"))
+Depends: stats
+License: AGPL (>= 3)
+RoxygenNote: 7.3.3
+Encoding: UTF-8
