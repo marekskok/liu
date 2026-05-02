@@ -1,12 +1,12 @@
 # Nazwa pakietu (musi być zgodna z plikiem DESCRIPTION)
-PKG_NAME = liulibrary
+PKG_NAME = liu
 
 # Pliki źródłowe C
-C_SRCS = src/apiR_tree.c src/build_tree.c src/search_tree.c
-HEADERS = src/tree_logic.h
+C_SRCS = src/apiR_tree.c src/build_int_tree.c src/functions_int_tree.c src/build_double_tree.c src/functions_double_tree.c
+HEADERS = src/declarations.h
 
 # Pliki R
-R_SRCS = R/tree_interface.R
+R_SRCS = R/liu_interface.R
 
 # Główna reguła: Dokumentuje i instaluje pakiet
 all: install
@@ -25,6 +25,7 @@ install: doc
 # Sprawdzanie pakietu (opcjonalnie, warto robić przed publikacją)
 check: doc
 	R CMD check .
+	R CMD check --as-cran .
 
 # Czyszczenie: usuwa skompilowane obiekty i dokumentację
 clean:

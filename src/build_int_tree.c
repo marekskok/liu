@@ -1,77 +1,76 @@
+// This file include all functions needed to build whole B+ tree with integer keys
 // B+ trees structure: https://www.youtube.com/watch?v=o_2psWN8k_c
 #include<stdlib.h>
 #include<stdbool.h>
-#include"tree_logic.h"
+#include"declarations.h"
 
-node* create_node(bool is_leaf) {
+int_node* create_node_int(bool is_leaf) {
     // Function creates pointer to an empty node without connection
-    node* new_node = malloc(sizeof(node));
+    int_node* new_node = malloc(sizeof(int_node));
     new_node->is_leaf = is_leaf;
     new_node->number_of_keys = 0;
     new_node->next_leaf = NULL;
     new_node->prev_leaf = NULL;
     new_node->parent = NULL;
-    for (int i = 0; i < ORDER; i++) {
+    for (size_t i = 0; i < ORDER; i++) {
         if (is_leaf) new_node->data.row_indices[i] = -1;
         else new_node->data.children[i] = NULL;
     }
-    for (int i = 0; i < ORDER - 1; i++) {
+    for (size_t i = 0; i < ORDER - 1; i++) {
         new_node->keys[i] = 0;
     }
     return new_node;
 }
 
-node* find_leaf(node* root, int key) {
-    // Function returns pointer to node where key value would fit in
+int_node* find_leaf_int(int_node* root, int key) {
+    // Function returns pointer to the first node where key value would fit in
     if (root == NULL) {
         return root;
     }
 
-    node* cursor = root;
-    //
-    int i = 0;
-    //
+    int_node* cursor = root;
+    // Go down until it is leaf 
     while (!cursor->is_leaf) {
-        //
-        i++;
-        //
-        int i = 0;
+        size_t i = 0;
+
+        // Chose children based on where key is <=
         while (i < cursor->number_of_keys) {
             if (key <= cursor->keys[i]) {
                 break;
             }
             i++;
         }
-        cursor = (node*)cursor->data.children[i];
+        cursor = (int_node*)cursor->data.children[i];
     }
     return cursor;
 }
 
-node* find_leaf_last(node* root, int key) {
+int_node* find_leaf_last_int(int_node* root, int key) {
+    // Function returns pointer to the last node where key value would fit in
     if (root == NULL) return NULL;
 
-    node* cursor = root;
+    int_node* cursor = root;
 
     while (!cursor->is_leaf) {
-        int i = 0;
-        // Schodzimy w prawo tak długo, jak klucz jest większy LUB RÓWNY kluczowi w węźle
-        // Dzięki temu dla duplikatów zawsze wybierzemy najbardziej prawą ścieżkę
+        size_t i = 0;
+
+        // Differs from previous function < instead of <=
         while (i < cursor->number_of_keys) {
             if (key < cursor->keys[i]) {
                 break;
             }
             i++;
         }
-        cursor = (node*)cursor->data.children[i];
+        cursor = (int_node*)cursor->data.children[i];
     }
     return cursor;
 }
 
-void insert_into_leaf(node* leaf, int key, int row_index) {
+void insert_into_leaf_int(int_node* leaf, int key, int row_index) {
     // Function inserts key value and row index into the given node keys list 
     // on the condition that there is space
 
-    int insertion_point = 0;
+    size_t insertion_point = 0;
 
     // Looks for correct position for new key
     while (insertion_point < leaf->number_of_keys && leaf->keys[insertion_point] <= key) {
@@ -79,7 +78,7 @@ void insert_into_leaf(node* leaf, int key, int row_index) {
     }
 
     // Shifts existing keys and pointers to the right
-    for (int i = leaf->number_of_keys; i > insertion_point; i--) {
+    for (size_t i = leaf->number_of_keys; i > insertion_point; i--) {
         leaf->keys[i] = leaf->keys[i - 1];
         leaf->data.row_indices[i] = leaf->data.row_indices[i - 1];
     }
@@ -90,10 +89,10 @@ void insert_into_leaf(node* leaf, int key, int row_index) {
     leaf->number_of_keys++;
 }
 
-node* insert_into_new_root(node* left, int key, node* right) {
+int_node* insert_into_new_root_int(int_node* left, int key, int_node* right) {
     // This function is needed when there is only one full leaf, which is also root
     // then after spliting we need to create new root with splitted half children
-    node* root = create_node(false);
+    int_node* root = create_node_int(false);
     root->keys[0] = key;
     root->data.children[0] = left;
     root->data.children[1] = right;
@@ -103,9 +102,9 @@ node* insert_into_new_root(node* left, int key, node* right) {
     return root;
 }
 
-void insert_into_node(node* parent, int left_index, int key, node* right) {
+void insert_into_node_int(int_node* parent, int left_index, int key, int_node* right) {
     // This function is used when there is space in node which isn't leaf
-    for (int i = parent->number_of_keys; i > left_index; i--) {
+    for (size_t i = parent->number_of_keys; i > left_index; i--) {
         parent->data.children[i + 1] = parent->data.children[i];
         parent->keys[i] = parent->keys[i - 1];
     }
@@ -115,19 +114,19 @@ void insert_into_node(node* parent, int left_index, int key, node* right) {
     right->parent = parent;
 }
 
-void insert_into_parent(node** root, node* left, int key, node* right);
+void insert_into_parent_int(int_node** root, int_node* left, int key, int_node* right);
 
-void split_and_insert_leaf(node** root, node* leaf, int key, int row_index) {
+void split_and_insert_leaf_int(int_node** root, int_node* leaf, int key, int row_index) {
     // This function is used when there isn't space for new key in node where it shoud be inserted
-    // It creates new node and put there half of old one
+    // It creates new node(leaf) and put there half of old one
 
-    node* new_leaf = create_node(true);
+    int_node* new_leaf = create_node_int(true);
     new_leaf->parent = leaf->parent;
     
     // Temporary tables for all keys and row_indices including new one
     int temp_keys[ORDER];
     int temp_indices[ORDER];
-    int i, j, split_point;
+    size_t i, j, split_point;
 
     i = 0;
     while (i < ORDER - 1 && leaf->keys[i] <= key) i++;
@@ -172,45 +171,16 @@ void split_and_insert_leaf(node** root, node* leaf, int key, int row_index) {
 
     // Copy of the smallest key of new leaf goes up to the parent
     int parent_key = new_leaf->keys[0];
-    insert_into_parent(root, leaf, parent_key, new_leaf);
+    insert_into_parent_int(root, leaf, parent_key, new_leaf);
 }
 
-void split_and_insert_internal(node** root, node* old_node, int left_index, int key, node* right);
-
-void insert_into_parent(node** root, node* left, int key, node* right) {
-    node* parent = left->parent;
-
-    // If leaf was also root
-    if (parent == NULL) {
-        *root = insert_into_new_root(left, key, right);
-        left->parent = *root;
-        right->parent = *root;
-        return;
-    }
-
-    // Index of left leaf in parent node
-    int left_index = 0;
-    while (left_index <= parent->number_of_keys && parent->data.children[left_index] != left) {
-        left_index++;
-    }
-
-    // If there is space in parent root
-    if (parent->number_of_keys < ORDER - 1) {
-        insert_into_node(parent, left_index, key, right);
-    } 
-    // If there isn't space in parent root
-    else {
-        split_and_insert_internal(root, parent, left_index, key, right);
-    }
-}
-
-void split_and_insert_internal(node** root, node* old_node, int left_index, int key, node* right) {
+void split_and_insert_internal_int(int_node** root, int_node* old_node, int left_index, int key, int_node* right) {
     // This function is used when there isn't space in parent node
-    node* new_node = create_node(false);
+    int_node* new_node = create_node_int(false);
 
-    int i, j, split_point;
+    size_t i, j, split_point;
     int temp_keys[ORDER];
-    node* temp_children[ORDER + 1];
+    int_node* temp_children[ORDER + 1];
 
     // Copying data to temporary tables (could be one loop but complicated)
     for (i = 0, j = 0; i < old_node->number_of_keys + 1; i++, j++) {
@@ -253,13 +223,40 @@ void split_and_insert_internal(node** root, node* old_node, int left_index, int 
         (new_node->data.children[i])->parent = new_node;
     }
     // Recursive inerstion
-    insert_into_parent(root, old_node, k_prime, new_node);
+    insert_into_parent_int(root, old_node, k_prime, new_node);
 }
 
-void insert(node** root, int key, int row_index) {
+void insert_into_parent_int(int_node** root, int_node* left, int key, int_node* right) {
+    int_node* parent = left->parent;
+
+    // If leaf was also root
+    if (parent == NULL) {
+        *root = insert_into_new_root_int(left, key, right);
+        left->parent = *root;
+        right->parent = *root;
+        return;
+    }
+
+    // Index of left leaf in parent node
+    size_t left_index = 0;
+    while (left_index <= parent->number_of_keys && parent->data.children[left_index] != left) {
+        left_index++;
+    }
+
+    // If there is space in parent root
+    if (parent->number_of_keys < ORDER - 1) {
+        insert_into_node_int(parent, left_index, key, right);
+    } 
+    // If there isn't space in parent root
+    else {
+        split_and_insert_internal_int(root, parent, left_index, key, right);
+    }
+}
+
+void insert_int(int_node** root, int key, int row_index) {
     // Creates new root if tree is empty
     if (*root == NULL) {
-        *root = create_node(true);
+        *root = create_node_int(true);
         (*root)->keys[0] = key;
         (*root)->data.row_indices[0] = row_index;
         (*root)->number_of_keys++;
@@ -268,20 +265,12 @@ void insert(node** root, int key, int row_index) {
     }
 
     // Find proper leaf using function find_leaf
-    node* leaf = find_leaf_last(*root, key);
+    int_node* leaf = find_leaf_last_int(*root, key);
 
     // Check if there is space in leaf
     if (leaf->number_of_keys < ORDER - 1) {
-        insert_into_leaf(leaf, key, row_index);
+        insert_into_leaf_int(leaf, key, row_index);
     } else {
-        split_and_insert_leaf(root, leaf, key, row_index);
+        split_and_insert_leaf_int(root, leaf, key, row_index);
     }
-}
-
-node* create_tree(int key, int row_index){
-    node* root = create_node(true);
-    root->keys[0] = key;
-    root->data.row_indices[0] = row_index;
-    root->number_of_keys = 1;
-    return root;
 }
