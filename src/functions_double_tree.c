@@ -230,7 +230,7 @@ int_table find_indices_max_double(double_node* root){
     return t;
 }
 
-dual_int_table inner_join_double(int_table v, double_node* root){
+dual_int_table inner_join_double(double_table v, double_node* root){
     // This function might need some comment
     // As it says it is inner join between v indices and row indices from root
     // based on v values and tree keys

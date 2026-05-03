@@ -60,18 +60,10 @@ typedef struct _double_node {
     struct _double_node *prev_leaf;
     struct _double_node *next_leaf;
 } double_node;
-// Used to trasfer int vectors between functions
-// typedef struct _double_table {
-//     double* pointer;
-//     size_t size;
-//  } double_table;
-// // Used to trasfer double int vectors between functions (only in inner join)
-// typedef struct _dual_double_table {
-//     double* left_indices;
-//     double* right_indices;
-//     size_t size;
-//     size_t capacity;
-// } dual_double_table;
+typedef struct _double_table {
+    double* pointer;
+    size_t size;
+ } double_table;
 
 // Int functions:
 // Used for building tree
@@ -96,7 +88,7 @@ int_table find_indices_double(double_node* root, double key);
 int_table find_indices_interval_double(double_node* root, double start, double end);
 int_table find_indices_min_double(double_node* root);
 int_table find_indices_max_double(double_node* root);
-dual_int_table inner_join_double(int_table keys, double_node* root);
+dual_int_table inner_join_double(double_table keys, double_node* root);
 void free_tree_double(double_node* root);
 
 #endif

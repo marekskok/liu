@@ -56,7 +56,7 @@ liu_build <- function(df, column_name) {
 #' 
 #' @export
 liu_search <- function(index, key) {
-  if (is.null(index) || class(index) != "externalptr") {
+  if (is.null(index) || typeof(index) != "externalptr" || !inherits(index, "liu_index")) {
     stop("Index must be a valid LIU external pointer.")
   }
   if (length(key) != 1) {
@@ -109,7 +109,7 @@ liu_free <- function(index) {
 #'
 #' @export
 liu_search_range <- function(index, start, end) {
-  if (is.null(index) || class(index) != "externalptr") {
+  if (is.null(index) || typeof(index) != "externalptr" || !inherits(index, "liu_index")) {
     stop("Index must be a valid LIU external pointer.")
   }
   if (!is.numeric(start) || !is.numeric(end)) {
@@ -141,7 +141,7 @@ liu_search_range <- function(index, start, end) {
 #'
 #' @export
 liu_search_min <- function(index) {
-  if (is.null(index) || class(index) != "externalptr") {
+  if (is.null(index) || typeof(index) != "externalptr" || !inherits(index, "liu_index")) {
     stop("Index must be a valid LIU external pointer.")
   }
   
@@ -166,7 +166,7 @@ liu_search_min <- function(index) {
 #'
 #' @export
 liu_search_max <- function(index) {
-  if (is.null(index) || class(index) != "externalptr") {
+  if (is.null(index) || typeof(index) != "externalptr" || !inherits(index, "liu_index")) {
     stop("Index must be a valid LIU external pointer.")
   }
   
@@ -203,7 +203,7 @@ liu_join <- function(df_left, column_name, df_right, index) {
   if (!(column_name %in% names(df_left)) || !(column_name %in% names(df_right))) {
     stop("Column not in column names")
   }
-  if (is.null(index) || class(index) != "externalptr") {
+  if (is.null(index) || typeof(index) != "externalptr" || !inherits(index, "liu_index")) {
     stop("Index must be a valid LIU external pointer.")
   }
   

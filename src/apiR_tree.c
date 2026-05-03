@@ -70,7 +70,7 @@ SEXP r_build_tree_from_df(SEXP df, SEXP col_name) {
         }
 
         SEXP root_ptr = PROTECT(R_MakeExternalPtr(root, Rf_install("liu_index_int"), R_NilValue));
-        //Rf_setAttrib(root_ptr, R_ClassSymbol, Rf_mkString("liu_index"));
+        Rf_setAttrib(root_ptr, R_ClassSymbol, Rf_mkString("liu_index"));
         R_RegisterCFinalizerEx(root_ptr, r_index_free, TRUE);
         UNPROTECT(1);
         return root_ptr;
@@ -84,7 +84,7 @@ SEXP r_build_tree_from_df(SEXP df, SEXP col_name) {
         }
 
         SEXP root_ptr = PROTECT(R_MakeExternalPtr(root, Rf_install("liu_index_double"), R_NilValue));
-        //Rf_setAttrib(root_ptr, R_ClassSymbol, Rf_mkString("liu_index"));
+        Rf_setAttrib(root_ptr, R_ClassSymbol, Rf_mkString("liu_index"));
         R_RegisterCFinalizerEx(root_ptr, r_index_free, TRUE);
         UNPROTECT(1);
         return root_ptr;
@@ -271,55 +271,91 @@ SEXP r_search_max(SEXP index_ptr) {
     }
 }
 
-SEXP r_inner_join(SEXP id_vector, SEXP btree_ptr){
-    if (TYPEOF(btree_ptr) != EXTPTRSXP) {
+SEXP r_inner_join(SEXP id_vector, SEXP index_ptr){
+    if (TYPEOF(index_ptr) != EXTPTRSXP) {
         Rf_error("Argument must be an External Pointer (liu_index)");
     }
-    if (R_ExternalPtrTag(btree_ptr) != Rf_install("liu_index_int")) {
+    if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_index_int")) {
+        if (TYPEOF(id_vector) != INTSXP) {
+            Rf_error("id_vector must be an integer vector");
+        }
+        // Saving as C objects
+        int_node* root = (int_node*)R_ExternalPtrAddr(index_ptr);
+        int* keys = INTEGER(id_vector);
+        int nr_keys = Rf_length(id_vector);
+
+        // Building table
+        int_table v;
+        v.size = (size_t)nr_keys;
+        v.pointer = keys;
+        dual_int_table table = inner_join_int(v, root);        
+
+        // Alloc for new vectors
+        SEXP out_left = Rf_protect(Rf_allocVector(INTSXP, table.size));
+        SEXP out_right = Rf_protect(Rf_allocVector(INTSXP, table.size));
+        
+        // Copying data
+        memcpy(INTEGER(out_left), table.left_indices, table.size * sizeof(int));
+        memcpy(INTEGER(out_right), table.right_indices, table.size * sizeof(int));
+
+        // Freing data after inner join
+        free(table.left_indices);
+        free(table.right_indices);
+
+        // Putting it in list
+        SEXP res_list = Rf_protect(Rf_allocVector(VECSXP, 2));
+        SET_VECTOR_ELT(res_list, 0, out_left);
+        SET_VECTOR_ELT(res_list, 1, out_right);
+
+        // Adding atributes used later in R interface
+        SEXP names = Rf_protect(Rf_allocVector(STRSXP, 2));
+        SET_STRING_ELT(names, 0, Rf_mkChar("left"));
+        SET_STRING_ELT(names, 1, Rf_mkChar("right"));
+        Rf_setAttrib(res_list, R_NamesSymbol, names);
+        Rf_unprotect(4);
+        return res_list;
+    } else if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_index_double")) {
+        if (TYPEOF(id_vector) != REALSXP) {
+            Rf_error("id_vector must be a double vector");
+        }
+        // Saving as C objects
+        double_node* root = (double_node*)R_ExternalPtrAddr(index_ptr);
+        double* keys = REAL(id_vector);
+        int nr_keys = Rf_length(id_vector);
+
+        // Building table
+        double_table v;
+        v.size = (size_t)nr_keys;
+        v.pointer = keys;
+        dual_int_table table = inner_join_double(v, root);        
+ 
+        // Alloc for new vectors
+        SEXP out_left = Rf_protect(Rf_allocVector(INTSXP, table.size));
+        SEXP out_right = Rf_protect(Rf_allocVector(INTSXP, table.size));
+        
+        // Copying data
+        memcpy(INTEGER(out_left), table.left_indices, table.size * sizeof(int));
+        memcpy(INTEGER(out_right), table.right_indices, table.size * sizeof(int));
+
+        // Freing data after inner join
+        free(table.left_indices);
+        free(table.right_indices);
+
+        // Putting it in list
+        SEXP res_list = Rf_protect(Rf_allocVector(VECSXP, 2));
+        SET_VECTOR_ELT(res_list, 0, out_left);
+        SET_VECTOR_ELT(res_list, 1, out_right);
+
+        // Adding atributes used later in R interface
+        SEXP names = Rf_protect(Rf_allocVector(STRSXP, 2));
+        SET_STRING_ELT(names, 0, Rf_mkChar("left"));
+        SET_STRING_ELT(names, 1, Rf_mkChar("right"));
+        Rf_setAttrib(res_list, R_NamesSymbol, names);
+        Rf_unprotect(4);
+        return res_list;
+    } else {
     Rf_error("Provided pointer is not a BTree_Class object");
     }
-    if (TYPEOF(id_vector) != INTSXP) {
-        Rf_error("id_vector must be an integer vector");
-    }
-    // 1. Pobieramy wskaźniki bezpośrednio z obiektów R
-    int_node* root = (int_node*)R_ExternalPtrAddr(btree_ptr);
-    int* keys = INTEGER(id_vector);
-    int nr_keys = Rf_length(id_vector);
-
-    // 2. Zamiast malloc i memcpy, tworzymy strukturę v, która tylko "patrzy" na pamięć R
-    // Zakładam, że Twoje inner_join nie modyfikuje tej tablicy
-    int_table v;
-    v.size = (size_t)nr_keys;
-    v.pointer = keys; // Przekazujemy wskaźnik bezpośrednio!
-
-    // 3. Wykonujemy Join (tutaj malloc następuje tylko dla wyników wewnątrz inner_join)
-    dual_int_table table = inner_join_int(v, root);        
-
-    // 4. Alokujemy wektory wynikowe R
-    SEXP out_left = Rf_protect(Rf_allocVector(INTSXP, table.size));
-    SEXP out_right = Rf_protect(Rf_allocVector(INTSXP, table.size));
-    
-    // 5. Kopiujemy wyniki raz - z bufora C do wektora R
-    memcpy(INTEGER(out_left), table.left_indices, table.size * sizeof(int));
-    memcpy(INTEGER(out_right), table.right_indices, table.size * sizeof(int));
-
-    // 6. Czyścimy tylko to, co zaalokował inner_join
-    free(table.left_indices);
-    free(table.right_indices);
-    // NIE robimy free(v.pointer), bo to pamięć zarządzana przez R!
-
-    // 7. Pakowanie w listę (bez zmian)
-    SEXP res_list = Rf_protect(Rf_allocVector(VECSXP, 2));
-    SET_VECTOR_ELT(res_list, 0, out_left);
-    SET_VECTOR_ELT(res_list, 1, out_right);
-
-    SEXP names = Rf_protect(Rf_allocVector(STRSXP, 2));
-    SET_STRING_ELT(names, 0, Rf_mkChar("left"));
-    SET_STRING_ELT(names, 1, Rf_mkChar("right"));
-    Rf_setAttrib(res_list, R_NamesSymbol, names);
-
-    Rf_unprotect(4);
-    return res_list;
 }   
 
  
