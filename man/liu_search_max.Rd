@@ -2,7 +2,7 @@
 % Please edit documentation in R/liu_interface.R
 \name{liu_search_max}
 \alias{liu_search_max}
-\title{Search for Maximum Key in LIU Index}
+\title{Search for Index of Maximum Key in LIU Index}
 \usage{
 liu_search_max(index)
 }

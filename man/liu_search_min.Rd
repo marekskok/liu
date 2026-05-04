@@ -2,7 +2,7 @@
 % Please edit documentation in R/liu_interface.R
 \name{liu_search_min}
 \alias{liu_search_min}
-\title{Search for Minimum Key in LIU Index}
+\title{Search for Index of Minimum Key in LIU Index}
 \usage{
 liu_search_min(index)
 }

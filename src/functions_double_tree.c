@@ -274,4 +274,4 @@ dual_int_table inner_join_double(double_table v, double_node* root){
     }
     return res;
 }
-
+ 

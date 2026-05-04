@@ -66,7 +66,9 @@ SEXP r_build_tree_from_df(SEXP df, SEXP col_name) {
 
         int_node *root = NULL; 
         for (size_t i = 0; i < n; i++) {
-            insert_int(&root, data_ptr[i], i+1);
+            if (data_ptr[i] != NA_INTEGER) {
+                insert_int(&root, data_ptr[i], i + 1);
+            }
         }
 
         SEXP root_ptr = PROTECT(R_MakeExternalPtr(root, Rf_install("liu_index_int"), R_NilValue));
@@ -80,7 +82,9 @@ SEXP r_build_tree_from_df(SEXP df, SEXP col_name) {
 
         double_node *root = NULL; 
         for (size_t i = 0; i < n; i++) {
-            insert_double(&root, data_ptr[i], i+1);
+            if (data_ptr[i] != NA_REAL){
+                insert_double(&root, data_ptr[i], i+1);
+            }
         }
 
         SEXP root_ptr = PROTECT(R_MakeExternalPtr(root, Rf_install("liu_index_double"), R_NilValue));
@@ -166,14 +170,15 @@ SEXP r_search_by_range(SEXP index_ptr, SEXP start, SEXP end) {
     } else if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_index_double")){
         // Getting root
         double_node* root = (double_node*)R_ExternalPtrAddr(index_ptr);
-        
         if (root == NULL) {
             Rf_error("Tree pointer is NULL (empty or corrupted)");
         }
-
-        // Converting key to int
-        double start1 = Rf_asInteger(start);
-        double end1 = Rf_asInteger(end);
+        if (!Rf_isReal(start) || !Rf_isReal(end)) {
+            Rf_error("Arguments 'start' and 'end' must be of type index(double)");
+        }
+        // Converting key to double
+        double start1 = Rf_asReal(start);
+        double end1 = Rf_asReal(end);
 
         int_table table = find_indices_interval_double(root, start1, end1);
 
@@ -358,4 +363,3 @@ SEXP r_inner_join(SEXP id_vector, SEXP index_ptr){
     }
 }   
 
- 

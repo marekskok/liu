@@ -82,7 +82,7 @@ liu_search <- function(index, key) {
 #'
 #' @export
 liu_free <- function(index) {
-  if (is.null(index) || class(index) != "externalptr") {
+  if (is.null(index) || typeof(index) != "externalptr" || !inherits(index, "liu_index")) {
     stop("Index must be a valid LIU external pointer.")
   }
   .Call("r_index_free", index, PACKAGE = "liu")
@@ -125,7 +125,7 @@ liu_search_range <- function(index, start, end) {
 }
 #'
 #' @title
-#' Search for Minimum Key in LIU Index
+#' Search for Index of Minimum Key in LIU Index
 #'
 #' @description
 #' Search for the smallest keys in LIU index and returs their row indices
@@ -150,7 +150,7 @@ liu_search_min <- function(index) {
 }
 #'
 #' @title
-#' Search for Maximum Key in LIU Index
+#' Search for Index of Maximum Key in LIU Index
 #'
 #' @description
 #' Search for the largest keys in LIU index and returs their row indices
