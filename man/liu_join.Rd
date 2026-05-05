@@ -4,7 +4,7 @@
 \alias{liu_join}
 \title{Fast Inner Join}
 \usage{
-liu_join(df_left, column_name, df_right, index)
+liu_join(df_left, column_name, df_right, index, how = "inner")
 }
 \arguments{
 \item{df_left}{Data frame (left side of the join).}
@@ -14,15 +14,21 @@ liu_join(df_left, column_name, df_right, index)
 \item{df_right}{The "indexed" data frame (right side of the join).}
 
 \item{index}{A LIU index object built on the join column of `df_right`.}
+
+\item{how}{A character string "inner" or "left".}
 }
 \value{
 Returns merged data frame.
 }
 \description{
-Performs a high-performance Inner Join between two data frames using a LIU index.
+Performs a high-performance Join between two data frames using a LIU index. 
+For now only inner (default) and left join are available
 }
 \examples{
 idx <- liu_build(df_b, "id")
 merged <- liu_join(df_a, "id", df_b, idx)
+
+#' idx <- liu_build(df_b, "id")
+merged <- liu_join(df_a, "id", df_b, idx, "left")
 
 }

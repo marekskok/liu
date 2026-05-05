@@ -59,10 +59,7 @@ liu_search <- function(index, key) {
   if (is.null(index) || typeof(index) != "externalptr" || !inherits(index, "liu_index")) {
     stop("Index must be a valid LIU external pointer.")
   }
-  if (length(key) != 1) {
-    stop("The key must a scalar.")
-  }
-  res <- .Call("r_search_by_key", index, as.numeric(key), PACKAGE = "liu")
+  res <- .Call("r_search_by_key", index, key, PACKAGE = "liu")
   return(res)
 }
 #'
@@ -140,7 +137,7 @@ liu_search_range <- function(index, start, end) {
 #' # min_rows <- liu_search_min(idx)
 #'
 #' @export
-liu_search_min <- function(index) {
+liu_min <- function(index) {
   if (is.null(index) || typeof(index) != "externalptr" || !inherits(index, "liu_index")) {
     stop("Index must be a valid LIU external pointer.")
   }
@@ -165,7 +162,7 @@ liu_search_min <- function(index) {
 #' # max_rows <- liu_search_max(idx)
 #'
 #' @export
-liu_search_max <- function(index) {
+liu_max <- function(index) {
   if (is.null(index) || typeof(index) != "externalptr" || !inherits(index, "liu_index")) {
     stop("Index must be a valid LIU external pointer.")
   }
@@ -178,12 +175,14 @@ liu_search_max <- function(index) {
 #' Fast Inner Join
 #'
 #' @description
-#' Performs a high-performance Inner Join between two data frames using a LIU index.
+#' Performs a high-performance Join between two data frames using a LIU index. 
+#' For now only inner (default) and left join are available.
 #' 
 #' @param df_left Data frame (left side of the join).
 #' @param column_name Name of the join numeric column (must exist in both data frames).
 #' @param df_right The "indexed" data frame (right side of the join).
 #' @param index A LIU index object built on the join column of `df_right`.
+#' @param how A character string "inner" or "left".
 #'
 #' @return
 #' Returns merged data frame.
@@ -192,8 +191,11 @@ liu_search_max <- function(index) {
 #' idx <- liu_build(df_b, "id")
 #' merged <- liu_join(df_a, "id", df_b, idx)
 #'
+#' idx <- liu_build(df_b, "id")
+#' merged <- liu_join(df_a, "id", df_b, idx, "left")
+#' 
 #' @export
-liu_join <- function(df_left, column_name, df_right, index) {
+liu_join <- function(df_left, column_name, df_right, index, how="inner") {
   if (!is.character(column_name)) {
     stop("Column_name must be character")
   }
@@ -207,10 +209,15 @@ liu_join <- function(df_left, column_name, df_right, index) {
     stop("Index must be a valid LIU external pointer.")
   }
   
-  id_vector <- as.numeric(df_left[[column_name]])
+  id_vector <- df_left[[column_name]]
   
-  indices <- .Call("r_inner_join", id_vector, index, PACKAGE = "liu")
-
+  if (how=="inner"){
+  indices <- .Call("r_inner_join", id_vector, index, FALSE, PACKAGE = "liu")
+  } else if (how == "left") {
+  indices <- .Call("r_inner_join", id_vector, index, TRUE, PACKAGE = "liu")
+  } else {
+    stop("how= can be inner or left")
+  }
   res_left <- lapply(df_left, function(x) x[indices$left])
     
   right_cols <- setdiff(names(df_right), column_name)

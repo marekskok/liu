@@ -95,23 +95,32 @@ SEXP r_build_tree_from_df(SEXP df, SEXP col_name) {
     }
 }
 
-SEXP r_search_by_key(SEXP index_ptr, SEXP key_to_find) {
+SEXP r_search_by_key(SEXP index_ptr, SEXP keys_to_find) {
     // Checking for index class and calling right function int or double
 
     if (TYPEOF(index_ptr) != EXTPTRSXP) {
-        Rf_error("Argument must be an External Pointer (liu_index)");
+        Rf_error("Argument must be an External Pointer (liu_pointer)");
     }
 
     if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_index_int")) {
+        if (TYPEOF(keys_to_find) != INTSXP) {
+            Rf_error("Argument keys must be same type as liu pointer (int)");
+        }
         // Getting root
         int_node* root = (int_node*)R_ExternalPtrAddr(index_ptr);
         
         if (root == NULL) Rf_error("Tree pointer is NULL (empty or corrupted)");
 
         // Converting key to int
-        int key = Rf_asInteger(key_to_find);
+        int_table keys;
+        keys.size = LENGTH(keys_to_find);
 
-        int_table table = find_indices_int(root, key);
+        keys.pointer = INTEGER(keys_to_find);
+
+        int_table table = {NULL, 0};
+        for (size_t i = 0; i<keys.size; i++){
+            find_indices_int(root, keys.pointer[i], &table);
+        }
 
         SEXP indices = Rf_protect(Rf_allocVector(INTSXP, table.size));
 
@@ -123,13 +132,19 @@ SEXP r_search_by_key(SEXP index_ptr, SEXP key_to_find) {
     } else if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_index_double")){
         // Getting root
         double_node* root = (double_node*)R_ExternalPtrAddr(index_ptr);
-        
+
         if (root == NULL) Rf_error("Tree pointer is NULL (empty or corrupted)");
 
-        // Converting key to double
-        double key = Rf_asReal(key_to_find);
+        // Converting key to int
+        double_table keys;
+        keys.size = LENGTH(keys_to_find);
 
-        int_table table = find_indices_double(root, key);
+        keys.pointer = REAL(keys_to_find);
+        int_table table = {NULL, 0};
+
+        for (size_t i = 0; i<keys.size; i++){
+            find_indices_double(root, keys.pointer[i], &table);
+        }
 
         SEXP indices = Rf_protect(Rf_allocVector(INTSXP, table.size));
 
@@ -276,24 +291,24 @@ SEXP r_search_max(SEXP index_ptr) {
     }
 }
 
-SEXP r_inner_join(SEXP id_vector, SEXP index_ptr){
+SEXP r_inner_join(SEXP id_vector, SEXP index_ptr, SEXP left){
+    // This function is sending arguments to inner_join int or double
+    // but it takes argument if it is supposed to be left join
+
     if (TYPEOF(index_ptr) != EXTPTRSXP) {
         Rf_error("Argument must be an External Pointer (liu_index)");
     }
     if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_index_int")) {
-        if (TYPEOF(id_vector) != INTSXP) {
-            Rf_error("id_vector must be an integer vector");
-        }
         // Saving as C objects
         int_node* root = (int_node*)R_ExternalPtrAddr(index_ptr);
         int* keys = INTEGER(id_vector);
         int nr_keys = Rf_length(id_vector);
-
+        
         // Building table
         int_table v;
         v.size = (size_t)nr_keys;
         v.pointer = keys;
-        dual_int_table table = inner_join_int(v, root);        
+        dual_int_table table = inner_join_int(v, root, Rf_asBool(left));        
 
         // Alloc for new vectors
         SEXP out_left = Rf_protect(Rf_allocVector(INTSXP, table.size));
@@ -320,9 +335,6 @@ SEXP r_inner_join(SEXP id_vector, SEXP index_ptr){
         Rf_unprotect(4);
         return res_list;
     } else if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_index_double")) {
-        if (TYPEOF(id_vector) != REALSXP) {
-            Rf_error("id_vector must be a double vector");
-        }
         // Saving as C objects
         double_node* root = (double_node*)R_ExternalPtrAddr(index_ptr);
         double* keys = REAL(id_vector);
@@ -332,7 +344,7 @@ SEXP r_inner_join(SEXP id_vector, SEXP index_ptr){
         double_table v;
         v.size = (size_t)nr_keys;
         v.pointer = keys;
-        dual_int_table table = inner_join_double(v, root);        
+        dual_int_table table = inner_join_double(v, root, Rf_asBool(left));        
  
         // Alloc for new vectors
         SEXP out_left = Rf_protect(Rf_allocVector(INTSXP, table.size));
@@ -362,4 +374,3 @@ SEXP r_inner_join(SEXP id_vector, SEXP index_ptr){
     Rf_error("Provided pointer is not a BTree_Class object");
     }
 }   
-

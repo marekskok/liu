@@ -71,11 +71,11 @@ void insert_int(int_node** root, int key, int row_index);
 
 // Used by R API functions
 int_node* find_leaf_int(int_node* root, int key);
-int_table find_indices_int(int_node* root, int key);
+void find_indices_int(int_node* root, int key, int_table* result);
 int_table find_indices_interval_int(int_node* root, int start, int end);
 int_table find_indices_min_int(int_node* root);
 int_table find_indices_max_int(int_node* root);
-dual_int_table inner_join_int(int_table keys, int_node* root);
+dual_int_table inner_join_int(int_table keys, int_node* root, bool left);
 void free_tree_int(int_node* root);
 
 // Double functions:
@@ -84,11 +84,11 @@ void insert_double(double_node** root, double key, int row_index);
 
 // Used by R API functions
 double_node* find_leaf_double(double_node* root, double key);
-int_table find_indices_double(double_node* root, double key);
+void find_indices_double(double_node* root, double key, int_table* result);
 int_table find_indices_interval_double(double_node* root, double start, double end);
 int_table find_indices_min_double(double_node* root);
 int_table find_indices_max_double(double_node* root);
-dual_int_table inner_join_double(double_table keys, double_node* root);
+dual_int_table inner_join_double(double_table keys, double_node* root, bool left);
 void free_tree_double(double_node* root);
 
 #endif

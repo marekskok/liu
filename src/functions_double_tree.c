@@ -4,17 +4,16 @@
 #include<stdlib.h>
 #include<stdbool.h>
 #include"declarations.h"
+#include <R.h>
+#include <Rinternals.h>
 
-int_table find_indices_double(double_node* root, double key){
+void find_indices_double(double_node* root, double key, int_table* result){
     // Looks for row indices of elements in leafs where keys are the same
     // It returns struct which is basically int vector of occurences
 
     // Empty table
-    int_table t = {NULL, 0};
     size_t size = 0;
     int flag = 0;
-    if (root == NULL) return t;
-
     // Uses function from build_int_tree.c to find leaf
     double_node* start_leaf = find_leaf_double(root, key);
     double_node* leaf = start_leaf;
@@ -31,11 +30,11 @@ int_table find_indices_double(double_node* root, double key){
         if (flag) break;
         leaf = leaf->next_leaf;
     }
-    if (size == 0) return t;
+    if (size == 0) return;
 
-    t.size = size;
-    t.pointer = malloc(t.size*sizeof(int));
-    size_t j = 0;
+    size_t new_size = result->size + size;
+    result->pointer = realloc(result->pointer, new_size * sizeof(int));
+    size_t j = result->size;
 
     // Saving values to the table
     leaf = start_leaf;
@@ -43,7 +42,7 @@ int_table find_indices_double(double_node* root, double key){
     while(leaf){
         for (size_t i=0; i<leaf->number_of_keys; i++){
             if (leaf->keys[i] == key) {
-                t.pointer[j++] = leaf->data.row_indices[i];;
+                result->pointer[j++] = leaf->data.row_indices[i];;
             }
             if (leaf->keys[i] > key) {
                 flag = 1;
@@ -53,7 +52,9 @@ int_table find_indices_double(double_node* root, double key){
         if (flag) break;
         leaf = leaf->next_leaf;
     }
-    return t;
+
+    result->size = new_size;
+    return;
 }
 
 int_table find_indices_interval_double(double_node* root, double start, double end){
@@ -230,7 +231,7 @@ int_table find_indices_max_double(double_node* root){
     return t;
 }
 
-dual_int_table inner_join_double(double_table v, double_node* root){
+dual_int_table inner_join_double(double_table v, double_node* root, bool left){
     // This function might need some comment
     // As it says it is inner join between v indices and row indices from root
     // based on v values and tree keys
@@ -250,10 +251,13 @@ dual_int_table inner_join_double(double_table v, double_node* root){
     res.left_indices = malloc(res.capacity*sizeof(int));
     res.right_indices = malloc(res.capacity*sizeof(int));
 
+    int_table matches;
     // For every value in v we look for matches
     for (size_t i = 0; i < v.size; i++) {
+        matches.pointer = NULL, 
+        matches.size = 0;
         // Using function from earlier
-        int_table matches = find_indices_double(root, v.pointer[i]);
+        find_indices_double(root, v.pointer[i], &matches);
         
         // Note that if there are no matches we don't chose it becaues it is inner
         if (matches.size > 0) {
@@ -269,9 +273,18 @@ dual_int_table inner_join_double(double_table v, double_node* root){
                 res.left_indices[res.size] = i + 1;
                 res.size++;
             }
-            free(matches.pointer);
+        } else if (left) { // left join
+            if (res.size + 1 > res.capacity) {
+                res.capacity *= 2;
+                res.left_indices = realloc(res.left_indices, res.capacity*sizeof(int));
+                res.right_indices = realloc(res.right_indices, res.capacity*sizeof(int));
+            }
+            res.right_indices[res.size] = NA_INTEGER;
+            res.left_indices[res.size] = i + 1;
+            res.size++;
         }
-    }
+        if (matches.pointer) free(matches.pointer);
+            
+        }
     return res;
 }
- 
