@@ -7,10 +7,9 @@
 
 void r_index_free(SEXP index_ptr) {
     // This function recognizes index type and uses right free function
-
     if (TYPEOF(index_ptr) != EXTPTRSXP) return;
 
-    if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_index_int")) {
+    if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_int")) {
         // Getting root
         int_node* root = (int_node*)R_ExternalPtrAddr(index_ptr);
         if (root == NULL) return;
@@ -18,7 +17,7 @@ void r_index_free(SEXP index_ptr) {
         free_tree_int(root);
         R_ClearExternalPtr(index_ptr);
         return;
-    } else if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_index_double")) {
+    } else if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_double")) {
         // Getting root
         double_node* root = (double_node*)R_ExternalPtrAddr(index_ptr);
         if (root == NULL) return;
@@ -70,11 +69,16 @@ SEXP r_build_tree_from_df(SEXP df, SEXP col_name) {
                 insert_int(&root, data_ptr[i], i + 1);
             }
         }
-
-        SEXP root_ptr = PROTECT(R_MakeExternalPtr(root, Rf_install("liu_index_int"), R_NilValue));
-        Rf_setAttrib(root_ptr, R_ClassSymbol, Rf_mkString("liu_index"));
+        // Prepering external pointer to send
+        SEXP root_ptr = PROTECT(R_MakeExternalPtr(root, Rf_install("liu_pointer_int"), R_NilValue));
+        Rf_setAttrib(root_ptr, R_ClassSymbol, Rf_mkString("liu_pointer_int"));
         R_RegisterCFinalizerEx(root_ptr, r_index_free, TRUE);
-        UNPROTECT(1);
+
+        // Attribute name of column, will be needed later
+        SEXP attr_name = Rf_install("column_name");
+        SEXP attr_value = PROTECT(Rf_mkString(target_col));
+        Rf_setAttrib(root_ptr, attr_name, attr_value);
+        UNPROTECT(2);
         return root_ptr;
     } else { // when double
         double *data_ptr = REAL(column);
@@ -87,88 +91,73 @@ SEXP r_build_tree_from_df(SEXP df, SEXP col_name) {
             }
         }
 
-        SEXP root_ptr = PROTECT(R_MakeExternalPtr(root, Rf_install("liu_index_double"), R_NilValue));
-        Rf_setAttrib(root_ptr, R_ClassSymbol, Rf_mkString("liu_index"));
+        SEXP root_ptr = PROTECT(R_MakeExternalPtr(root, Rf_install("liu_pointer_double"), R_NilValue));
+        Rf_setAttrib(root_ptr, R_ClassSymbol, Rf_mkString("liu_pointer_double"));
         R_RegisterCFinalizerEx(root_ptr, r_index_free, TRUE);
-        UNPROTECT(1);
+
+        // Attribute name of column, will be needed later
+        SEXP attr_name = Rf_install("column_name");
+        SEXP attr_value = PROTECT(Rf_mkString(target_col));
+        Rf_setAttrib(root_ptr, attr_name, attr_value);
+        UNPROTECT(2);
         return root_ptr;
     }
 }
 
 SEXP r_search_by_key(SEXP index_ptr, SEXP keys_to_find) {
     // Checking for index class and calling right function int or double
-
-    if (TYPEOF(index_ptr) != EXTPTRSXP) {
-        Rf_error("Argument must be an External Pointer (liu_pointer)");
-    }
-
-    if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_index_int")) {
-        if (TYPEOF(keys_to_find) != INTSXP) {
-            Rf_error("Argument keys must be same type as liu pointer (int)");
-        }
+    if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_int")) {
         // Getting root
         int_node* root = (int_node*)R_ExternalPtrAddr(index_ptr);
-        
-        if (root == NULL) Rf_error("Tree pointer is NULL (empty or corrupted)");
 
         // Converting key to int
         int_table keys;
         keys.size = LENGTH(keys_to_find);
-
         keys.pointer = INTEGER(keys_to_find);
 
+        //  Create table for saving found row indices for every element of given vector
         int_table table = {NULL, 0};
         for (size_t i = 0; i<keys.size; i++){
             find_indices_int(root, keys.pointer[i], &table);
         }
 
+        // Create returning vector
         SEXP indices = Rf_protect(Rf_allocVector(INTSXP, table.size));
-
         memcpy(INTEGER(indices), table.pointer, table.size * sizeof(int));
 
         free(table.pointer);
         Rf_unprotect(1);
         return indices;
-    } else if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_index_double")){
+    } else if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_double")){
         // Getting root
         double_node* root = (double_node*)R_ExternalPtrAddr(index_ptr);
-
-        if (root == NULL) Rf_error("Tree pointer is NULL (empty or corrupted)");
 
         // Converting key to int
         double_table keys;
         keys.size = LENGTH(keys_to_find);
-
         keys.pointer = REAL(keys_to_find);
         int_table table = {NULL, 0};
 
+        //  Create table for saving found row indices for every element of given vector
         for (size_t i = 0; i<keys.size; i++){
             find_indices_double(root, keys.pointer[i], &table);
         }
 
+        // Create returning vector
         SEXP indices = Rf_protect(Rf_allocVector(INTSXP, table.size));
-
         memcpy(INTEGER(indices), table.pointer, table.size * sizeof(int));
 
         free(table.pointer);
         Rf_unprotect(1);
         return indices;
-    } else Rf_error("Provided pointer is not a liu_index object");
+    } else Rf_error("Provided pointer is not a liu_pointer, maybe you freed memory");
 }
 
 SEXP r_search_by_range(SEXP index_ptr, SEXP start, SEXP end) {
     // Checking for index class and calling right function int or double
-    if (TYPEOF(index_ptr) != EXTPTRSXP) {
-        Rf_error("Argument must be an External Pointer (liu_index)");
-    }
-
-    if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_index_int")) {
+    if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_int")) {
         // Getting root
         int_node* root = (int_node*)R_ExternalPtrAddr(index_ptr);
-        
-        if (root == NULL) {
-            Rf_error("Tree pointer is NULL (empty or corrupted)");
-        }
 
         // Converting key to int
         int start1 = Rf_asInteger(start);
@@ -176,27 +165,24 @@ SEXP r_search_by_range(SEXP index_ptr, SEXP start, SEXP end) {
 
         int_table table = find_indices_interval_int(root, start1, end1);
 
+        // Create final vector
         SEXP indices = Rf_protect(Rf_allocVector(INTSXP, table.size));
 
         memcpy(INTEGER(indices), table.pointer, table.size * sizeof(int));
         free(table.pointer);
         Rf_unprotect(1);
         return indices;
-    } else if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_index_double")){
+    } else if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_double")){
         // Getting root
         double_node* root = (double_node*)R_ExternalPtrAddr(index_ptr);
-        if (root == NULL) {
-            Rf_error("Tree pointer is NULL (empty or corrupted)");
-        }
-        if (!Rf_isReal(start) || !Rf_isReal(end)) {
-            Rf_error("Arguments 'start' and 'end' must be of type index(double)");
-        }
+        
         // Converting key to double
         double start1 = Rf_asReal(start);
         double end1 = Rf_asReal(end);
 
         int_table table = find_indices_interval_double(root, start1, end1);
 
+        // Creating final vector
         SEXP indices = Rf_protect(Rf_allocVector(INTSXP, table.size));
 
         memcpy(INTEGER(indices), table.pointer, table.size * sizeof(int));
@@ -204,105 +190,82 @@ SEXP r_search_by_range(SEXP index_ptr, SEXP start, SEXP end) {
         Rf_unprotect(1);
         return indices;
     } else {
-       Rf_error("Provided pointer is not a liu_index object");
+       Rf_error("Provided pointer is not a liu_pointer");
     }
 }
 
 SEXP r_search_min(SEXP index_ptr) {
-    if (TYPEOF(index_ptr) != EXTPTRSXP) {
-        Rf_error("Argument must be an External Pointer (liu_index)");
-    }
-
-    if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_index_int")) {
+    if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_int")) {
         // Getting root
         int_node* root = (int_node*)R_ExternalPtrAddr(index_ptr);
         
-        if (root == NULL) {
-            Rf_error("Tree pointer is NULL (empty or corrupted)");
-        }
-
         int_table table = find_indices_min_int(root);
-        SEXP indices = Rf_protect(Rf_allocVector(INTSXP, table.size));
 
+        // Creating final vector
+        SEXP indices = Rf_protect(Rf_allocVector(INTSXP, table.size));
         memcpy(INTEGER(indices), table.pointer, table.size * sizeof(int));
 
         free(table.pointer);
         Rf_unprotect(1);
         return indices;
-    } else if(R_ExternalPtrTag(index_ptr) == Rf_install("liu_index_double")) {
+    } else if(R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_double")) {
         // Getting root
         double_node* root = (double_node*)R_ExternalPtrAddr(index_ptr);
-        
-        if (root == NULL) {
-            Rf_error("Tree pointer is NULL (empty or corrupted)");
-        }
 
         int_table table = find_indices_min_double(root);
-        SEXP indices = Rf_protect(Rf_allocVector(INTSXP, table.size));
 
+        // Creating final vector
+        SEXP indices = Rf_protect(Rf_allocVector(INTSXP, table.size));
         memcpy(INTEGER(indices), table.pointer, table.size * sizeof(int));
 
         free(table.pointer);
         Rf_unprotect(1);
         return indices;
     } else {
-    Rf_error("Provided pointer is not a liu_index object");
+    Rf_error("Provided pointer is not a liu_pointer");
     }
 }
 
 SEXP r_search_max(SEXP index_ptr) {
-    if (TYPEOF(index_ptr) != EXTPTRSXP) {
-        Rf_error("Argument must be an External Pointer (liu_index)");
-    }
-    if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_index_int")) {
+    if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_int")) {
         // Getting root
         int_node* root = (int_node*)R_ExternalPtrAddr(index_ptr);
-        
-        if (root == NULL) {
-            Rf_error("Tree pointer is NULL (empty or corrupted)");
-        }
 
         int_table table = find_indices_max_int(root);
-        SEXP indices = Rf_protect(Rf_allocVector(INTSXP, table.size));
 
+        // Creating finlal vector
+        SEXP indices = Rf_protect(Rf_allocVector(INTSXP, table.size));
         memcpy(INTEGER(indices), table.pointer, table.size * sizeof(int));
 
         free(table.pointer);
         Rf_unprotect(1);
         return indices;
-    } else if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_index_double")) {
+    } else if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_double")) {
         // Getting root
         double_node* root = (double_node*)R_ExternalPtrAddr(index_ptr);
         
-        if (root == NULL) {
-            Rf_error("Tree pointer is NULL (empty or corrupted)");
-        }
-
         int_table table = find_indices_max_double(root);
-        SEXP indices = Rf_protect(Rf_allocVector(INTSXP, table.size));
 
+        // Creating final vector
+        SEXP indices = Rf_protect(Rf_allocVector(INTSXP, table.size));
         memcpy(INTEGER(indices), table.pointer, table.size * sizeof(int));
 
         free(table.pointer);
         Rf_unprotect(1);
         return indices;
     } else {
-        Rf_error("Provided pointer is not a BTree_Class object");
+        Rf_error("Provided pointer is not a liu_pointer");
     }
 }
 
 SEXP r_inner_join(SEXP id_vector, SEXP index_ptr, SEXP left){
     // This function is sending arguments to inner_join int or double
     // but it takes argument if it is supposed to be left join
-
-    if (TYPEOF(index_ptr) != EXTPTRSXP) {
-        Rf_error("Argument must be an External Pointer (liu_index)");
-    }
-    if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_index_int")) {
+    if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_int")) {
         // Saving as C objects
         int_node* root = (int_node*)R_ExternalPtrAddr(index_ptr);
         int* keys = INTEGER(id_vector);
-        int nr_keys = Rf_length(id_vector);
+        int nr_keys = LENGTH(id_vector);
         
         // Building table
         int_table v;
@@ -334,11 +297,11 @@ SEXP r_inner_join(SEXP id_vector, SEXP index_ptr, SEXP left){
         Rf_setAttrib(res_list, R_NamesSymbol, names);
         Rf_unprotect(4);
         return res_list;
-    } else if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_index_double")) {
+    } else if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_double")) {
         // Saving as C objects
         double_node* root = (double_node*)R_ExternalPtrAddr(index_ptr);
         double* keys = REAL(id_vector);
-        int nr_keys = Rf_length(id_vector);
+        int nr_keys = LENGTH(id_vector);
 
         // Building table
         double_table v;
@@ -371,6 +334,6 @@ SEXP r_inner_join(SEXP id_vector, SEXP index_ptr, SEXP left){
         Rf_unprotect(4);
         return res_list;
     } else {
-    Rf_error("Provided pointer is not a BTree_Class object");
+    Rf_error("Provided pointer is not a liu pointer");
     }
 }   
