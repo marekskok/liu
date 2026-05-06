@@ -20,8 +20,8 @@ Integer vector of row indices for values within the range.
 }
 \description{
 Finds all row indices with values within a specified numerical range [start, end) in LIU. 
-index. This operation is very efficient due to the B+Tree structure. You can leave start
-or end or both then it will be unbounded search.
+index. This operation is very efficient due to the B+Tree structure. You can leave
+the start, the end, or both blank for an unbounded search.
 }
 \examples{
 Find rows where 10 <= key < 50

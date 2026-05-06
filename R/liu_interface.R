@@ -108,8 +108,8 @@ liu_free <- function(index) {
 #'
 #' @description
 #' Finds all row indices with values within a specified numerical range [start, end) in LIU. 
-#' index. This operation is very efficient due to the B+Tree structure. You can leave start
-#' or end or both then it will be unbounded search.
+#' index. This operation is very efficient due to the B+Tree structure. You can leave
+#' the start, the end, or both blank for an unbounded search.
 #'
 #' @param index A LIU index object (external pointer).
 #' @param start Numeric scalar, beginning of the range (inclusive). Must
@@ -300,7 +300,7 @@ liu_join <- function(df_left, column_name, df_right, index, how="inner") {
 #'
 #' @description
 #' Sum all values within a specified numerical range [start, end) in LIU. 
-#' index.
+#' index. You can leave the start, the end, or both blank for an unbounded sum.
 #'
 #' @param df Data frame on which given index is built.
 #' @param index A LIU index object (external pointer).

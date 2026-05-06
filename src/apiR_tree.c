@@ -86,7 +86,7 @@ SEXP r_build_tree_from_df(SEXP df, SEXP col_name) {
 
         double_node *root = NULL; 
         for (size_t i = 0; i < n; i++) {
-            if (data_ptr[i] != NA_REAL){
+            if (!ISNA(data_ptr[i]) && !ISNAN(data_ptr[i])){
                 insert_double(&root, data_ptr[i], i+1);
             }
         }
@@ -236,7 +236,7 @@ SEXP r_search_min(SEXP index_ptr) {
         SET_VECTOR_ELT(res_list, 1, minimum);
 
         Rf_unprotect(3);
-        return indices;
+        return res_list;
     } else {
     Rf_error("Provided pointer is not a liu_pointer");
     }

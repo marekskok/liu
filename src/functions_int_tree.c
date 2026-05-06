@@ -252,7 +252,6 @@ dual_int_table inner_join_int(int_table v, int_node* root, bool left){
     res.right_indices = malloc(res.capacity*sizeof(int));
     int_table matches;
     for (size_t k = 0; k <v.size; k++){
-        printf("element: %d", v.pointer[k]);
     }
     // For every value in v we look for matches
     for (size_t i = 0; i < v.size; i++) {

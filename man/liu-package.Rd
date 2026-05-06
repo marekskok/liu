@@ -4,7 +4,7 @@
 \name{liu-package}
 \alias{liu}
 \alias{liu-package}
-\title{liu: LIU Library}
+\title{liu: Lightweight Index Units}
 \description{
 Implements SQL-like indexes for data frames
 }

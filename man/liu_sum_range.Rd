@@ -22,7 +22,7 @@ Integer vector of row indices for values within the range.
 }
 \description{
 Sum all values within a specified numerical range [start, end) in LIU. 
-index.
+index. You can leave the start, the end, or both blank for an unbounded sum.
 }
 \examples{
 Sum all prices where 10 <= price < 50
