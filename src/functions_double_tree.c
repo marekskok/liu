@@ -124,7 +124,7 @@ void free_tree_double(double_node* root) {
     free(root);
 }
 
-int_table find_indices_min_double(double_node* root){
+int_table find_indices_min_double(double_node* root, double* min){
     // It really does what it says
 
     // Empty table
@@ -176,10 +176,11 @@ int_table find_indices_min_double(double_node* root){
         if (flag) break;
         curr = curr->next_leaf;
     }
+    *min = min_value;
     return t;
 }
 
-int_table find_indices_max_double(double_node* root){
+int_table find_indices_max_double(double_node* root, double* max){
     // Same here
 
     // Empty table
@@ -228,6 +229,7 @@ int_table find_indices_max_double(double_node* root){
         if (flag) break;
         curr = curr->prev_leaf;
     }
+    *max = max_value;
     return t;
 }
 
@@ -256,6 +258,10 @@ dual_int_table inner_join_double(double_table v, double_node* root, bool left){
     for (size_t i = 0; i < v.size; i++) {
         matches.pointer = NULL, 
         matches.size = 0;
+
+        // We probably dont want to leave NA rows
+        if (ISNA(v.pointer[i]) || ISNAN(v.pointer[i])) continue;
+
         // Using function from earlier
         find_indices_double(root, v.pointer[i], &matches);
         

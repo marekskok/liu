@@ -59,9 +59,7 @@ liu_build <- function(df, column_name) {
 #' 
 #' @export
 liu_search <- function(index, key) {
-  if (is.na(key)){
-    return(integer(0))
-  }
+  key <- as.vector(na.omit(key))
   if (is.null(index) || typeof(index) != "externalptr") {
     stop("Index must be a valid LIU external pointer.")
   }
@@ -74,7 +72,6 @@ liu_search <- function(index, key) {
   if (inherits(index, "liu_pointer_double") && !is.double(key)){
     stop("LIU pointer is type double, but given key isnt")
   }
-  
   res <- .Call("r_search_by_key", index, key, PACKAGE = "liu")
   return(res)
 }
@@ -111,7 +108,8 @@ liu_free <- function(index) {
 #'
 #' @description
 #' Finds all row indices with values within a specified numerical range [start, end) in LIU. 
-#' index. This operation is very efficient due to the B+Tree structure.
+#' index. This operation is very efficient due to the B+Tree structure. You can leave start
+#' or end or both then it will be unbounded search.
 #'
 #' @param index A LIU index object (external pointer).
 #' @param start Numeric scalar, beginning of the range (inclusive). Must
@@ -127,17 +125,32 @@ liu_free <- function(index) {
 #' rows <- liu_search_range(idx, 10, 50)
 #' df[rows]
 #'
+#' Row indices with keys greater or equal to 2.5
+#' rows <- liu_search_range(idx, 2.5)
+#'
 #' @export
-liu_search_range <- function(index, start, end) {
-  if (is.na(start) || is.na(end)){
-    return(integer(0))
-  }
+liu_search_range <- function(index, start=NA, end=NA) {
   if (is.null(index) || typeof(index) != "externalptr") {
     stop("Index must be a valid LIU external pointer.")
   }
   if (!inherits(index, "liu_pointer_int") && !inherits(index, "liu_pointer_double")){
     stop("External pointer is not liu_pointer")
   }
+  if (inherits(index, "liu_pointer_double") && is.na(start)){
+    start <- -Inf
+  }
+  if (inherits(index, "liu_pointer_double") && is.na(end)){
+    end <- Inf
+  }
+  if (inherits(index, "liu_pointer_int") && is.na(start)){
+    list <- .Call("r_search_min", index, PACKAGE = "liu")
+    start <- as.integer(list[[2]])
+  }
+  if (inherits(index, "liu_pointer_int") && is.na(end)){
+    list <- .Call("r_search_max", index, PACKAGE = "liu")
+    end <- as.integer(list[[2]] + 1)
+  }
+  
   if (inherits(index, "liu_pointer_int") && (!is.integer(start) || !is.integer(end))){
     stop("LIU pointer is type int, but given start or end isnt, R treats normal number as doubles")
   }
@@ -178,7 +191,7 @@ liu_min <- function(index) {
   }
   
   res <- .Call("r_search_min", index, PACKAGE = "liu")
-  return(res)
+  return(res[[1]])
 }
 #'
 #' @title
@@ -206,7 +219,7 @@ liu_max <- function(index) {
   }
   
   res <- .Call("r_search_max", index, PACKAGE = "liu")
-  return(res)
+  return(res[[1]])
 }
 #'
 #' @title
@@ -300,12 +313,12 @@ liu_join <- function(df_left, column_name, df_right, index, how="inner") {
 #' Integer vector of row indices for values within the range.
 #' 
 #' @examples
-#' Sum values where 10 <= value < 50
-#' rows <- liu_sum_range(idx, 10, 50)
-#' df[rows]
+#' Sum all prices where 10 <= price < 50
+#' idx <- liu_build(df, "price")
+#' liu_sum_range(df, idx, 10, 50)
 #'
 #' @export
-liu_sum_range <- function(df, index, start, end){
+liu_sum_range <- function(df, index, start=NA, end=NA){
   if (!attributes(index)$column_name %in% names(df)){
     stop("Index not built on this data frame")
   }

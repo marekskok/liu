@@ -199,27 +199,43 @@ SEXP r_search_min(SEXP index_ptr) {
         // Getting root
         int_node* root = (int_node*)R_ExternalPtrAddr(index_ptr);
         
-        int_table table = find_indices_min_int(root);
+        int min = 0;
+        int_table table = find_indices_min_int(root, &min);
 
         // Creating final vector
         SEXP indices = Rf_protect(Rf_allocVector(INTSXP, table.size));
         memcpy(INTEGER(indices), table.pointer, table.size * sizeof(int));
-
         free(table.pointer);
-        Rf_unprotect(1);
-        return indices;
+
+        SEXP minimum = Rf_protect(Rf_allocVector(INTSXP, 1));
+        INTEGER(minimum)[0] = min;
+
+        SEXP res_list = Rf_protect(Rf_allocVector(VECSXP, 2));
+        SET_VECTOR_ELT(res_list, 0, indices);
+        SET_VECTOR_ELT(res_list, 1, minimum);
+
+        Rf_unprotect(3);
+        return res_list;
     } else if(R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_double")) {
         // Getting root
         double_node* root = (double_node*)R_ExternalPtrAddr(index_ptr);
 
-        int_table table = find_indices_min_double(root);
+        double min = 0;
+        int_table table = find_indices_min_double(root, &min);
 
         // Creating final vector
         SEXP indices = Rf_protect(Rf_allocVector(INTSXP, table.size));
         memcpy(INTEGER(indices), table.pointer, table.size * sizeof(int));
-
         free(table.pointer);
-        Rf_unprotect(1);
+
+        SEXP minimum = Rf_protect(Rf_allocVector(REALSXP, 1));
+        REAL(minimum)[0] = min;
+
+        SEXP res_list = Rf_protect(Rf_allocVector(VECSXP, 2));
+        SET_VECTOR_ELT(res_list, 0, indices);
+        SET_VECTOR_ELT(res_list, 1, minimum);
+
+        Rf_unprotect(3);
         return indices;
     } else {
     Rf_error("Provided pointer is not a liu_pointer");
@@ -231,28 +247,44 @@ SEXP r_search_max(SEXP index_ptr) {
         // Getting root
         int_node* root = (int_node*)R_ExternalPtrAddr(index_ptr);
 
-        int_table table = find_indices_max_int(root);
-
-        // Creating finlal vector
-        SEXP indices = Rf_protect(Rf_allocVector(INTSXP, table.size));
-        memcpy(INTEGER(indices), table.pointer, table.size * sizeof(int));
-
-        free(table.pointer);
-        Rf_unprotect(1);
-        return indices;
-    } else if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_double")) {
-        // Getting root
-        double_node* root = (double_node*)R_ExternalPtrAddr(index_ptr);
-        
-        int_table table = find_indices_max_double(root);
+        int max = 0;
+        int_table table = find_indices_max_int(root, &max);
 
         // Creating final vector
         SEXP indices = Rf_protect(Rf_allocVector(INTSXP, table.size));
         memcpy(INTEGER(indices), table.pointer, table.size * sizeof(int));
-
         free(table.pointer);
-        Rf_unprotect(1);
-        return indices;
+
+        SEXP maximum = Rf_protect(Rf_allocVector(INTSXP, 1));
+        INTEGER(maximum)[0] = max;
+
+        SEXP res_list = Rf_protect(Rf_allocVector(VECSXP, 2));
+        SET_VECTOR_ELT(res_list, 0, indices);
+        SET_VECTOR_ELT(res_list, 1, maximum);
+
+        Rf_unprotect(3);
+        return res_list;
+    } else if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_double")) {
+        // Getting root
+        double_node* root = (double_node*)R_ExternalPtrAddr(index_ptr);
+        
+        double max = 0;
+        int_table table = find_indices_max_double(root, &max);
+
+        // Creating final vector
+        SEXP indices = Rf_protect(Rf_allocVector(INTSXP, table.size));
+        memcpy(INTEGER(indices), table.pointer, table.size * sizeof(int));
+        free(table.pointer);
+
+        SEXP maximum = Rf_protect(Rf_allocVector(REALSXP, 1));
+        REAL(maximum)[0] = max;
+
+        SEXP res_list = Rf_protect(Rf_allocVector(VECSXP, 2));
+        SET_VECTOR_ELT(res_list, 0, indices);
+        SET_VECTOR_ELT(res_list, 1, maximum);
+
+        Rf_unprotect(3);
+        return res_list;
     } else {
         Rf_error("Provided pointer is not a liu_pointer");
     }

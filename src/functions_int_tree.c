@@ -122,7 +122,7 @@ void free_tree_int(int_node* root) {
     free(root);
 }
 
-int_table find_indices_min_int(int_node* root){
+int_table find_indices_min_int(int_node* root, int* min){
     // It really does what it says
 
     // Empty table
@@ -174,10 +174,11 @@ int_table find_indices_min_int(int_node* root){
         if (flag) break;
         curr = curr->next_leaf;
     }
+    *min = min_value;
     return t;
 }
 
-int_table find_indices_max_int(int_node* root){
+int_table find_indices_max_int(int_node* root, int* max){
     // Same here
 
     // Empty table
@@ -226,6 +227,7 @@ int_table find_indices_max_int(int_node* root){
         if (flag) break;
         curr = curr->prev_leaf;
     }
+    *max = max_value;
     return t;
 }
 
@@ -249,12 +251,19 @@ dual_int_table inner_join_int(int_table v, int_node* root, bool left){
     res.left_indices = malloc(res.capacity*sizeof(int));
     res.right_indices = malloc(res.capacity*sizeof(int));
     int_table matches;
-
+    for (size_t k = 0; k <v.size; k++){
+        printf("element: %d", v.pointer[k]);
+    }
     // For every value in v we look for matches
     for (size_t i = 0; i < v.size; i++) {
-        // Using function from earlier
         matches.pointer = NULL, 
         matches.size = 0;
+
+        // We probably dont want to leave NA rows
+        if (ISNA(v.pointer[i]) || v.pointer[i] == -2147483648) {
+            continue;
+        }
+        // Using function from earlier
         find_indices_int(root, v.pointer[i], &matches);
         
         // Note that if there are no matches we don't chose it becaues it is inner
