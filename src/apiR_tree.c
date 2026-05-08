@@ -4,6 +4,7 @@
 #include <Rinternals.h>
 #include <string.h>
 #include "declarations.h"
+#include <omp.h>
 
 void r_index_free(SEXP index_ptr) {
     // This function recognizes index type and uses right free function
@@ -290,81 +291,322 @@ SEXP r_search_max(SEXP index_ptr) {
     }
 }
 
-SEXP r_inner_join(SEXP id_vector, SEXP index_ptr, SEXP left){
+SEXP r_inner_join(SEXP df_left, SEXP col_name, SEXP df_right, SEXP index_ptr, SEXP left){
     // This function is sending arguments to inner_join int or double
     // but it takes argument if it is supposed to be left join
     if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_int")) {
         // Saving as C objects
         int_node* root = (int_node*)R_ExternalPtrAddr(index_ptr);
-        int* keys = INTEGER(id_vector);
-        int nr_keys = LENGTH(id_vector);
+        // Finding column
+        const char* target_col = CHAR(Rf_asChar(col_name));
+
+        // Finding index of column
+        int col_left_idx = -1;
+        int left_cols = LENGTH(df_left);
+        SEXP names_left = Rf_getAttrib(df_left, R_NamesSymbol);
+        for (int i = 0; i < left_cols; i++) {
+            if (strcmp(CHAR(STRING_ELT(names_left, i)), target_col) == 0) {
+                col_left_idx = i;
+                break;
+            }
+        }
+        SEXP column = VECTOR_ELT(df_left, col_left_idx);
+
+        size_t total_size = 0;
+        int max_threads = omp_get_max_threads();
+        int_table id_vector = {INTEGER(column), LENGTH(column)};
+        dual_int_table* common_thread_table = inner_join_int(id_vector, root, Rf_asLogical(left), &total_size);
         
-        // Building table
-        int_table v;
-        v.size = (size_t)nr_keys;
-        v.pointer = keys;
-        dual_int_table table = inner_join_int(v, root, Rf_asBool(left));        
+        // Names of right data frame
+        int right_cols = LENGTH(df_right);
+        SEXP names_right = Rf_getAttrib(df_right, R_NamesSymbol);
 
-        // Alloc for new vectors
-        SEXP out_left = Rf_protect(Rf_allocVector(INTSXP, table.size));
-        SEXP out_right = Rf_protect(Rf_allocVector(INTSXP, table.size));
+        // Creating data frame
+        int total_cols = left_cols + right_cols;
+        SEXP res_df = PROTECT(Rf_allocVector(VECSXP, total_cols));
+
+        // filling new data frame with data from left one
+        for (size_t j = 0; j < left_cols; j++) {
+            SEXP col_src = VECTOR_ELT(df_left, j);
+            SEXP new_col = PROTECT(Rf_allocVector(TYPEOF(col_src), total_size));
+            // checking for type
+            if (TYPEOF(col_src) == INTSXP || TYPEOF(col_src) == LGLSXP) {
+                int *src_ptr = (TYPEOF(col_src) == INTSXP) ? INTEGER(col_src) : LOGICAL(col_src);
+                int *dest_ptr = INTEGER(new_col);
+                size_t offset = 0;
+                for (int t = 0; t < max_threads; t++) {
+                    size_t n_t = common_thread_table[t].size;
+                    for (size_t i = 0; i < n_t; i++) {
+                        dest_ptr[offset + i] = src_ptr[common_thread_table[t].left_indices[i] - 1];
+                    }
+                    offset += n_t;
+                }
+            } 
+            else if (TYPEOF(col_src) == REALSXP) {
+                double *src_ptr = REAL(col_src);
+                double *dest_ptr = REAL(new_col);
+                size_t offset = 0;
+                for (int t = 0; t < max_threads; t++) {
+                    size_t n_t = common_thread_table[t].size;
+                    for (size_t i = 0; i < n_t; i++) {
+                        dest_ptr[offset + i] = src_ptr[common_thread_table[t].left_indices[i] - 1];
+                    }
+                    offset += n_t;
+                }
+            } 
+            else if (TYPEOF(col_src) == STRSXP) {
+                size_t offset = 0;
+                for (int t = 0; t < max_threads; t++) {
+                    size_t n_t = common_thread_table[t].size;
+                    for (size_t i = 0; i < n_t; i++) {
+                        SET_STRING_ELT(new_col, i + offset, STRING_ELT(col_src, common_thread_table[t].left_indices[i] - 1));
+                    }
+                    offset += n_t;
+                }
+            }
+            SET_VECTOR_ELT(res_df, j, new_col);
+            UNPROTECT(1);
+        }
+        // filling data from right data frame
+        for (size_t j = 0; j < right_cols; j++) {
+            SEXP col_src = VECTOR_ELT(df_right, j);
+            SEXP new_col = PROTECT(Rf_allocVector(TYPEOF(col_src), total_size));
+
+            if (TYPEOF(col_src) == INTSXP || TYPEOF(col_src) == LGLSXP) {
+                int *src_ptr = (TYPEOF(col_src) == INTSXP) ? INTEGER(col_src) : LOGICAL(col_src);
+                int *dest_ptr = INTEGER(new_col);
+                size_t offset = 0;
+                for (int t = 0; t < max_threads; t++) {
+                    size_t n_t = common_thread_table[t].size;
+                    for (size_t i = 0; i < n_t; i++) {
+                        int idx = common_thread_table[t].right_indices[i];
+                        if (idx == NA_INTEGER) {
+                            dest_ptr[offset + i] = NA_INTEGER;
+                        } else {
+                            dest_ptr[offset + i] = src_ptr[idx - 1];
+                        }
+                    }
+                    offset += n_t;
+                }
+            } 
+            else if (TYPEOF(col_src) == REALSXP) {
+                double *src_ptr = REAL(col_src);
+                double *dest_ptr = REAL(new_col);
+                size_t offset = 0;
+                for (int t = 0; t < max_threads; t++) {
+                    size_t n_t = common_thread_table[t].size;
+                    for (size_t i = 0; i < n_t; i++) {
+                        int idx = common_thread_table[t].right_indices[i];
+                        if (idx == NA_INTEGER) {
+                            dest_ptr[offset + i] = NA_REAL;
+                        } else {
+                            dest_ptr[offset + i] = src_ptr[idx - 1];
+                        }
+                    }
+                    offset += n_t;
+                }
+            } 
+            else if (TYPEOF(col_src) == STRSXP) {
+                size_t offset = 0;
+                for (int t = 0; t < max_threads; t++) {
+                    size_t n_t = common_thread_table[t].size;
+                    for (size_t i = 0; i < n_t; i++) {
+                        int idx = common_thread_table[t].right_indices[i];
+                        if (idx == NA_INTEGER) {
+                            SET_STRING_ELT(new_col, i + offset, NA_STRING);
+                        } else {
+                            SET_STRING_ELT(new_col, i + offset, STRING_ELT(col_src, idx - 1));
+                        }
+                    }
+                    offset += n_t;
+                }
+            }
+            SET_VECTOR_ELT(res_df, j + left_cols, new_col);
+            UNPROTECT(1);
+        }
+        // column names
+        SEXP out_names = PROTECT(Rf_allocVector(STRSXP, total_cols));
+        for (int i = 0; i < left_cols; i++) SET_STRING_ELT(out_names, i, STRING_ELT(names_left, i));
+        for (int i = 0; i < right_cols; i++) SET_STRING_ELT(out_names, left_cols + i, STRING_ELT(names_right, i));
+        Rf_setAttrib(res_df, R_NamesSymbol, out_names);
+        // data frame class
+        SEXP class_name = PROTECT(Rf_allocVector(STRSXP, 1));
+        SET_STRING_ELT(class_name, 0, Rf_mkChar("data.frame"));
+        Rf_classgets(res_df, class_name);
         
-        // Copying data
-        memcpy(INTEGER(out_left), table.left_indices, table.size * sizeof(int));
-        memcpy(INTEGER(out_right), table.right_indices, table.size * sizeof(int));
-
-        // Freing data after inner join
-        free(table.left_indices);
-        free(table.right_indices);
-
-        // Putting it in list
-        SEXP res_list = Rf_protect(Rf_allocVector(VECSXP, 2));
-        SET_VECTOR_ELT(res_list, 0, out_left);
-        SET_VECTOR_ELT(res_list, 1, out_right);
-
-        // Adding atributes used later in R interface
-        SEXP names = Rf_protect(Rf_allocVector(STRSXP, 2));
-        SET_STRING_ELT(names, 0, Rf_mkChar("left"));
-        SET_STRING_ELT(names, 1, Rf_mkChar("right"));
-        Rf_setAttrib(res_list, R_NamesSymbol, names);
-        Rf_unprotect(4);
-        return res_list;
-    } else if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_double")) {
+        // thanks to that R knows how to number columns
+        SEXP row_names = PROTECT(Rf_allocVector(INTSXP, 2));
+        INTEGER(row_names)[0] = NA_INTEGER;
+        INTEGER(row_names)[1] = -total_size;
+        Rf_setAttrib(res_df, R_RowNamesSymbol, row_names);
+        
+        for (int i=0; i<max_threads; i++){
+            free(common_thread_table[i].left_indices);
+            free(common_thread_table[i].right_indices);
+        }
+        free(common_thread_table);
+        UNPROTECT(4);
+        return res_df;
+    }
+     else if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_double")) {
         // Saving as C objects
         double_node* root = (double_node*)R_ExternalPtrAddr(index_ptr);
-        double* keys = REAL(id_vector);
-        int nr_keys = LENGTH(id_vector);
+        // Finding column
+        const char* target_col = CHAR(Rf_asChar(col_name));
 
-        // Building table
-        double_table v;
-        v.size = (size_t)nr_keys;
-        v.pointer = keys;
-        dual_int_table table = inner_join_double(v, root, Rf_asBool(left));        
- 
-        // Alloc for new vectors
-        SEXP out_left = Rf_protect(Rf_allocVector(INTSXP, table.size));
-        SEXP out_right = Rf_protect(Rf_allocVector(INTSXP, table.size));
+        // Finding index of column
+        int col_left_idx = -1;
+        int left_cols = LENGTH(df_left);
+        SEXP names_left = Rf_getAttrib(df_left, R_NamesSymbol);
+        for (int i = 0; i < left_cols; i++) {
+            if (strcmp(CHAR(STRING_ELT(names_left, i)), target_col) == 0) {
+                col_left_idx = i;
+                break;
+            }
+        }
+        SEXP column = VECTOR_ELT(df_left, col_left_idx);
+
+        size_t total_size = 0;
+        int max_threads = omp_get_max_threads();
+        double_table id_vector = {REAL(column), LENGTH(column)};
+        dual_int_table* common_thread_table = inner_join_double(id_vector, root, Rf_asLogical(left), &total_size);
         
-        // Copying data
-        memcpy(INTEGER(out_left), table.left_indices, table.size * sizeof(int));
-        memcpy(INTEGER(out_right), table.right_indices, table.size * sizeof(int));
+        // Names of right data frame
+        int right_cols = LENGTH(df_right);
+        SEXP names_right = Rf_getAttrib(df_right, R_NamesSymbol);
 
-        // Freing data after inner join
-        free(table.left_indices);
-        free(table.right_indices);
+        // Creating data frame
+        int total_cols = left_cols + right_cols;
+        SEXP res_df = PROTECT(Rf_allocVector(VECSXP, total_cols));
 
-        // Putting it in list
-        SEXP res_list = Rf_protect(Rf_allocVector(VECSXP, 2));
-        SET_VECTOR_ELT(res_list, 0, out_left);
-        SET_VECTOR_ELT(res_list, 1, out_right);
+        // filling new data frame with data from left one
+        for (size_t j = 0; j < left_cols; j++) {
+            SEXP col_src = VECTOR_ELT(df_left, j);
+            SEXP new_col = PROTECT(Rf_allocVector(TYPEOF(col_src), total_size));
+            // checking for type
+            if (TYPEOF(col_src) == INTSXP || TYPEOF(col_src) == LGLSXP) {
+                int *src_ptr = (TYPEOF(col_src) == INTSXP) ? INTEGER(col_src) : LOGICAL(col_src);
+                int *dest_ptr = INTEGER(new_col);
+                size_t offset = 0;
+                for (int t = 0; t < max_threads; t++) {
+                    size_t n_t = common_thread_table[t].size;
+                    for (size_t i = 0; i < n_t; i++) {
+                        dest_ptr[offset + i] = src_ptr[common_thread_table[t].left_indices[i] - 1];
+                    }
+                    offset += n_t;
+                }
+            } 
+            else if (TYPEOF(col_src) == REALSXP) {
+                double *src_ptr = REAL(col_src);
+                double *dest_ptr = REAL(new_col);
+                size_t offset = 0;
+                for (int t = 0; t < max_threads; t++) {
+                    size_t n_t = common_thread_table[t].size;
+                    for (size_t i = 0; i < n_t; i++) {
+                        dest_ptr[offset + i] = src_ptr[common_thread_table[t].left_indices[i] - 1];
+                    }
+                    offset += n_t;
+                }
+            } 
+            else if (TYPEOF(col_src) == STRSXP) {
+                size_t offset = 0;
+                for (int t = 0; t < max_threads; t++) {
+                    size_t n_t = common_thread_table[t].size;
+                    for (size_t i = 0; i < n_t; i++) {
+                        SET_STRING_ELT(new_col, i + offset, STRING_ELT(col_src, common_thread_table[t].left_indices[i] - 1));
+                    }
+                    offset += n_t;
+                }
+            }
+            SET_VECTOR_ELT(res_df, j, new_col);
+            UNPROTECT(1);
+        }
+        // filling data from right data frame
+        for (size_t j = 0; j < right_cols; j++) {
+            SEXP col_src = VECTOR_ELT(df_right, j);
+            SEXP new_col = PROTECT(Rf_allocVector(TYPEOF(col_src), total_size));
 
-        // Adding atributes used later in R interface
-        SEXP names = Rf_protect(Rf_allocVector(STRSXP, 2));
-        SET_STRING_ELT(names, 0, Rf_mkChar("left"));
-        SET_STRING_ELT(names, 1, Rf_mkChar("right"));
-        Rf_setAttrib(res_list, R_NamesSymbol, names);
-        Rf_unprotect(4);
-        return res_list;
+            if (TYPEOF(col_src) == INTSXP || TYPEOF(col_src) == LGLSXP) {
+                int *src_ptr = (TYPEOF(col_src) == INTSXP) ? INTEGER(col_src) : LOGICAL(col_src);
+                int *dest_ptr = INTEGER(new_col);
+                size_t offset = 0;
+                for (int t = 0; t < max_threads; t++) {
+                    size_t n_t = common_thread_table[t].size;
+                    for (size_t i = 0; i < n_t; i++) {
+                        // POPRAWIONE: right_indices i poprawna logika NA
+                        int idx = common_thread_table[t].right_indices[i];
+                        if (idx == NA_INTEGER) {
+                            dest_ptr[offset + i] = NA_INTEGER;
+                        } else {
+                            dest_ptr[offset + i] = src_ptr[idx - 1];
+                        }
+                    }
+                    offset += n_t;
+                }
+            } 
+            else if (TYPEOF(col_src) == REALSXP) {
+                double *src_ptr = REAL(col_src);
+                double *dest_ptr = REAL(new_col);
+                size_t offset = 0;
+                for (int t = 0; t < max_threads; t++) {
+                    size_t n_t = common_thread_table[t].size;
+                    for (size_t i = 0; i < n_t; i++) {
+                        // POPRAWIONE: right_indices i użycie NA_REAL dla double
+                        int idx = common_thread_table[t].right_indices[i];
+                        if (idx == NA_INTEGER) {
+                            dest_ptr[offset + i] = NA_REAL;
+                        } else {
+                            dest_ptr[offset + i] = src_ptr[idx - 1];
+                        }
+                    }
+                    offset += n_t;
+                }
+            } 
+            else if (TYPEOF(col_src) == STRSXP) {
+                size_t offset = 0;
+                for (int t = 0; t < max_threads; t++) {
+                    size_t n_t = common_thread_table[t].size;
+                    for (size_t i = 0; i < n_t; i++) {
+                        // POPRAWIONE: common_thread_table[t], right_indices, offset dla NA
+                        int idx = common_thread_table[t].right_indices[i];
+                        if (idx == NA_INTEGER) {
+                            SET_STRING_ELT(new_col, i + offset, NA_STRING);
+                        } else {
+                            SET_STRING_ELT(new_col, i + offset, STRING_ELT(col_src, idx - 1));
+                        }
+                    }
+                    offset += n_t;
+                }
+            }
+            SET_VECTOR_ELT(res_df, j + left_cols, new_col);
+            UNPROTECT(1);
+        }
+            
+        // column names
+        SEXP out_names = PROTECT(Rf_allocVector(STRSXP, total_cols));
+        for (int i = 0; i < left_cols; i++) SET_STRING_ELT(out_names, i, STRING_ELT(names_left, i));
+        for (int i = 0; i < right_cols; i++) SET_STRING_ELT(out_names, left_cols + i, STRING_ELT(names_right, i));
+        Rf_setAttrib(res_df, R_NamesSymbol, out_names);
+
+        // data frame class
+        SEXP class_name = PROTECT(Rf_allocVector(STRSXP, 1));
+        SET_STRING_ELT(class_name, 0, Rf_mkChar("data.frame"));
+        Rf_classgets(res_df, class_name);
+        
+        // thanks to that R knows how to number columns
+        SEXP row_names = PROTECT(Rf_allocVector(INTSXP, 2));
+        INTEGER(row_names)[0] = NA_INTEGER;
+        INTEGER(row_names)[1] = -total_size;
+        Rf_setAttrib(res_df, R_RowNamesSymbol, row_names);
+        
+        for (int i=0; i<max_threads; i++){
+            free(common_thread_table[i].left_indices);
+            free(common_thread_table[i].right_indices);
+        }
+        free(common_thread_table);
+
+        UNPROTECT(4);
+        return res_df;
     } else {
     Rf_error("Provided pointer is not a liu pointer");
     }

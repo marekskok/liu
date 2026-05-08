@@ -279,20 +279,8 @@ liu_join <- function(df_left, column_name, df_right, index, how="inner") {
   if (inherits(index, "liu_pointer_double") && !is.double(id_vector)){
     stop("Column type and index type dont match")
   }
-  
-  indices <- .Call("r_inner_join", id_vector, index, left, PACKAGE = "liu")
-
-  res_left <- lapply(df_left, function(x) x[indices$left])
-    
-  right_cols <- setdiff(names(df_right), column_name)
-  res_right <- lapply(df_right[right_cols], function(x) x[indices$right])
-    
-  df_final <- c(res_left, res_right)
-  
-  class(df_final) <- "data.frame"
-  attr(df_final, "row.names") <- .set_row_names(length(indices$left))
-
-  return(df_final)
+  merged <- .Call("r_inner_join", df_left, column_name, df_right, index, left)
+  return (merged)
 }
 #'
 #' @title
@@ -324,7 +312,53 @@ liu_sum_range <- function(df, index, start=NA, end=NA){
   }
   return (sum(df[liu_search_range(idx, start, end), attributes(index)$column_name]))
 }
-
+#'
+#' @title
+#' Is In LIU Index
+#'
+#' @description
+#' Checks if given keys are present in LIU index.
+#'
+#' @param index A LIU index object (external pointer).
+#' @param keys Vector of keys (int or double must match LIU index type) to check.
+#' @return
+#'
+#' @return
+#' Vector of logical values.
+#' 
+#' @examples
+#' Checks in int index if 2, NA, 5 are present
+#' logical <- liu_isin(idx, as.integer(c(2,NA,5)))
+#' 
+#' Checks in double index if 6.7 is present
+#' logical <- liu_isin(idx, 6.7)
+#'
+#' @export
+liu_isin <- function(index, keys){
+  if (length(keys) == 0){
+    return (as.logical(c()))
+  }
+  if (is.null(index) || typeof(index) != "externalptr") {
+    stop("Index must be a valid LIU external pointer.")
+  }
+  if (!inherits(index, "liu_pointer_int") && !inherits(index, "liu_pointer_double")){
+    stop("External pointer is not liu_pointer")
+  }
+  if (inherits(index, "liu_pointer_int") && !is.integer(keys)){
+    stop("LIU pointer is type int, but given key isnt, R treats normal number as doubles")
+  }
+  if (inherits(index, "liu_pointer_double") && !is.double(keys)){
+    stop("LIU pointer is type double, but given key isnt")
+  }
+  res <- logical(length(keys))
+  
+  for (i in 1:length(keys)){
+    if (length(liu_search(index, keys[i])) != 0){
+      res[i] <- TRUE
+    }
+  }
+  return (res)
+}
 
 
 

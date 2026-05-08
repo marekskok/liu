@@ -6,6 +6,7 @@
 #include"declarations.h"
 #include <R.h>
 #include <Rinternals.h>
+#include <omp.h>
 
 void find_indices_double(double_node* root, double key, int_table* result){
     // Looks for row indices of elements in leafs where keys are the same
@@ -233,7 +234,7 @@ int_table find_indices_max_double(double_node* root, double* max){
     return t;
 }
 
-dual_int_table inner_join_double(double_table v, double_node* root, bool left){
+dual_int_table* inner_join_double(double_table v, double_node* root, bool left, size_t* out_size){
     // This function might need some comment
     // As it says it is inner join between v indices and row indices from root
     // based on v values and tree keys
@@ -246,16 +247,28 @@ dual_int_table inner_join_double(double_table v, double_node* root, bool left){
     // right_indices: [5, 8, 12]    (row indices found in tree)
     // but put into double_int_table
 
+    // Prepering to split threads
+    int max_threads = omp_get_max_threads();
+    int rest = v.size % max_threads;
+    int range = (int)(v.size-rest)/max_threads;
+    dual_int_table* common_table = malloc(max_threads * sizeof(dual_int_table));
+
+    #pragma omp parallel
+    {
     // Empty structure
     dual_int_table res;
     res.size = 0;
     res.capacity = v.size;
     res.left_indices = malloc(res.capacity*sizeof(int));
     res.right_indices = malloc(res.capacity*sizeof(int));
-
     int_table matches;
+
+    // prepering threads to take their parts of loop
+    int cur_thread_id = omp_get_thread_num();
+    int start = cur_thread_id*range;
+    int end = (cur_thread_id == max_threads-1) ? (cur_thread_id+1)*range+rest : (cur_thread_id+1)*range;
     // For every value in v we look for matches
-    for (size_t i = 0; i < v.size; i++) {
+    for (size_t i = start; i < end; i++) {
         matches.pointer = NULL, 
         matches.size = 0;
 
@@ -292,5 +305,14 @@ dual_int_table inner_join_double(double_table v, double_node* root, bool left){
         if (matches.pointer) free(matches.pointer);
             
         }
-    return res;
+    common_table[cur_thread_id] = res;
+    }   
+
+    size_t total = 0;
+    for (int i = 0; i < max_threads; i++) {
+        total += common_table[i].size;
+    }
+    *out_size = total;
+
+    return common_table;
 }

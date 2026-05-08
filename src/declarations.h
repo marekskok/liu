@@ -65,6 +65,7 @@ typedef struct _double_table {
     size_t size;
  } double_table;
 
+
 // Int functions:
 // Used for building tree
 void insert_int(int_node** root, int key, int row_index);
@@ -75,7 +76,7 @@ void find_indices_int(int_node* root, int key, int_table* result);
 int_table find_indices_interval_int(int_node* root, int start, int end);
 int_table find_indices_min_int(int_node* root, int* min);
 int_table find_indices_max_int(int_node* root, int* max);
-dual_int_table inner_join_int(int_table keys, int_node* root, bool left);
+dual_int_table* inner_join_int(int_table keys, int_node* root, bool left, size_t* out_size);
 void free_tree_int(int_node* root);
 
 // Double functions:
@@ -88,7 +89,7 @@ void find_indices_double(double_node* root, double key, int_table* result);
 int_table find_indices_interval_double(double_node* root, double start, double end);
 int_table find_indices_min_double(double_node* root, double* min);
 int_table find_indices_max_double(double_node* root, double* max);
-dual_int_table inner_join_double(double_table keys, double_node* root, bool left);
+dual_int_table* inner_join_double(double_table keys, double_node* root, bool left, size_t* out_size);
 void free_tree_double(double_node* root);
 
 #endif

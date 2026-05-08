@@ -6,7 +6,6 @@ R_SRCS = R/liu_interface.R
 all: install
 
 doc: $(R_SRCS) $(C_SRCS) DESCRIPTION
-	Rscript -e 'roxygen2::roxygenise(".")'
 	touch doc
 
 install: doc
