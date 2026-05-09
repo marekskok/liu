@@ -6,7 +6,7 @@
 \alias{liu-package}
 \title{liu: Lightweight Index Units}
 \description{
-Implements SQL-like indexes for data frames
+Implements SQL-like indexes for data frames. Makes searching for keys or merging much faster.
 }
 \author{
 \strong{Maintainer}: Marek Skok \email{marekskok@pw.edu.pl}

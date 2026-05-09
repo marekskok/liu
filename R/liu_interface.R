@@ -183,7 +183,7 @@ liu_search_range <- function(index, start=NA, end=NA) {
 #'
 #' @examples
 #' \dontrun{
-#' # Get row indices for the smallest key in the index
+#' Get row indices for the smallest key in the index
 #' min_rows <- liu_search_min(idx)
 #'}
 #' @export
