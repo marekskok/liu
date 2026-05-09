@@ -9,6 +9,7 @@ doc: $(R_SRCS) $(C_SRCS) DESCRIPTION
 	touch doc
 
 install: doc
+	Rscript -e "roxygen2::roxygenise()"
 	R CMD INSTALL .
 
 check: doc
@@ -17,7 +18,6 @@ check: doc
 
 clean:
 	rm -f src/*.o src/*.so src/*.dll
-	rm -rf man/
 	rm -f doc
 
 .PHONY: all install doc check clean

@@ -8,7 +8,7 @@
 #' This function if foundation of LIU package. It builds a high-performance 
 #' SQL-like B+Tree index for a data frame column, enabling fast joins and lookups.
 #' Works only for columns of ints or doubles. Values of given column will be 
-#' put in B+Tree with their row numbers.
+#' put in B+Tree with their row numbers. It ignores NA in given column.
 #'
 #' @param df Data frame to be indexed.
 #' @param column_name Character string specifying the column to index. 
@@ -18,12 +18,13 @@
 #' C LIU index object (pointer).
 #'
 #' @examples
+#' \dontrun{
 #' idx <- liu_build(mtcars, "mpg")
-#' 
+#' }
 #' @export
 liu_build <- function(df, column_name) {
   if (!is.data.frame(df)) {
-    stop("Input df must be of data frame type")
+    stop("Input df must be of a data frame type")
   }
   if (!(column_name %in% names(df))) {
     stop("Column not found in data frame")
@@ -42,21 +43,22 @@ liu_build <- function(df, column_name) {
 #'
 #' @description
 #' Performs a fast lookup in the LIU index to find all row indices associated 
-#' with given vector of keys.
+#' with given vector of keys. It ignores NA in keys vector.
 #'
 #' @param index LIU index object (external pointer).
 #' @param key Vector of keys (int or double must match LIU index type) to search for.
 #' @return
 #' Integer vector of row indices where the keys were found. 
-#' Returns an empty vector if none of the keys exis.
+#' Returns an empty vector if none of the keys exist.
 #'
 #' @examples
+#' \dontrun{
 #' row_idx <- liu_search(idx, 110)
-#' mtcars[row_ids, ]
+#' df[row_ids, ]
 #' 
 #' row_ids <- liu_search(idx, c(6.7,21.15))
-#' df[row_idx]
-#' 
+#' df[row_idx, ]
+#' }
 #' @export
 liu_search <- function(index, key) {
   key <- as.vector(na.omit(key))
@@ -67,10 +69,10 @@ liu_search <- function(index, key) {
     stop("External pointer is not liu_pointer")
   }
   if (inherits(index, "liu_pointer_int") && !is.integer(key)){
-    stop("LIU pointer is type int, but given key isnt, R treats normal number as doubles")
+    stop("LIU pointer is type int, but given key isn't, R treats normal number as doubles")
   }
   if (inherits(index, "liu_pointer_double") && !is.double(key)){
-    stop("LIU pointer is type double, but given key isnt")
+    stop("LIU pointer is type double, but given key isn't")
   }
   res <- .Call("r_search_by_key", index, key, PACKAGE = "liu")
   return(res)
@@ -80,16 +82,17 @@ liu_search <- function(index, key) {
 #' Free LIU Index Memory
 #'
 #' @description
-#' Explicitly releases the memory allocated for the B+Tree index in C. 
+#' Explicitly releases the memory allocated for the LIU index in C. 
 #' Use this when index is no longer needed to prevent memory leaks.
 #'
 #' @param index LIU index object (external pointer).
 #'
 #' @examples
+#' \dontrun{
 #' idx <- liu_build(mtcars, "hp")
 #' # ...
 #' liu_free(idx)
-#'
+#'}
 #' @export
 liu_free <- function(index) {
   if (is.null(index) || typeof(index) != "externalptr") {
@@ -107,7 +110,7 @@ liu_free <- function(index) {
 #' Range Search in LIU Index
 #'
 #' @description
-#' Finds all row indices with values within a specified numerical range [start, end) in LIU. 
+#' Finds all row indices with keys within a specified numerical range [start, end) in LIU. 
 #' index. This operation is very efficient due to the B+Tree structure. You can leave
 #' the start, the end, or both blank for an unbounded search.
 #'
@@ -118,16 +121,17 @@ liu_free <- function(index) {
 #' match index type (int or double).
 #'
 #' @return
-#' Integer vector of row indices for values within the range.
+#' Integer vector of row indices with keys within the range.
 #' 
 #' @examples
+#' \dontrun{
 #' Find rows where 10 <= key < 50
 #' rows <- liu_search_range(idx, 10, 50)
 #' df[rows]
 #'
 #' Row indices with keys greater or equal to 2.5
 #' rows <- liu_search_range(idx, 2.5)
-#'
+#'}
 #' @export
 liu_search_range <- function(index, start=NA, end=NA) {
   if (is.null(index) || typeof(index) != "externalptr") {
@@ -152,10 +156,10 @@ liu_search_range <- function(index, start=NA, end=NA) {
   }
   
   if (inherits(index, "liu_pointer_int") && (!is.integer(start) || !is.integer(end))){
-    stop("LIU pointer is type int, but given start or end isnt, R treats normal number as doubles")
+    stop("LIU pointer is type int, but given start or end isn't, R treats normal number as doubles")
   }
   if (inherits(index, "liu_pointer_double") && (!is.double(start) || !is.double(end))){
-    stop("LIU pointer is type double, but given start or end isnt")
+    stop("LIU pointer is type double, but given start or end isn't")
   }
   if (start >= end) {
     return(integer(0))
@@ -170,7 +174,7 @@ liu_search_range <- function(index, start=NA, end=NA) {
 #' Minimum Key in LIU Index
 #'
 #' @description
-#' Search for the smallest keys in LIU index and returs their row indices.
+#' Search for the smallest key in LIU index and returs their row indices.
 #'
 #' @param index A LIU index object (external pointer).
 #'
@@ -178,9 +182,10 @@ liu_search_range <- function(index, start=NA, end=NA) {
 #' An integer vector of row indices corresponding to the minimum key.
 #'
 #' @examples
-#' # Get row indices for the smallest value in the index
+#' \dontrun{
+#' # Get row indices for the smallest key in the index
 #' min_rows <- liu_search_min(idx)
-#'
+#'}
 #' @export
 liu_min <- function(index) {
   if (is.null(index) || typeof(index) != "externalptr") {
@@ -198,7 +203,7 @@ liu_min <- function(index) {
 #' Maximum Key in LIU Index
 #'
 #' @description
-#' Search for the largest keys in LIU index and returns their row indices.
+#' Search for the largest key in LIU index and returns their row indices.
 #'
 #' @param index A LIU index object (external pointer).
 #'
@@ -206,9 +211,10 @@ liu_min <- function(index) {
 #' An integer vector of row indices corresponding to the maximum key.
 #'
 #' @examples
-#' # Get row indices for the smallest value in the index
+#' \dontrun{
+#' # Get row indices for the smallest key in the index
 #' max_rows <- liu_search_max(idx)
-#'
+#' }
 #' @export
 liu_max <- function(index) {
   if (is.null(index) || typeof(index) != "externalptr") {
@@ -228,8 +234,10 @@ liu_max <- function(index) {
 #' @description
 #' Performs a high-performance Join between two data frames using a LIU index. 
 #' For now only inner (default) and left join are available. It takes 4
-#' arguments left data table and name of one of its columns, right data
-#' table and index built on it. Type of chosen column must match index type.
+#' arguments: left data table, name of one of it's columns, right data
+#' table, index built on it. Type of chosen column must match index type.
+#' Indexes doesn't take NA, so NA in given column are ignored. It returns the same
+#' data frame as merge(df_left, df_right, "id", incomparables = NA)
 #' 
 #' @param df_left Data frame (left side of the join).
 #' @param column_name Name of the join numeric column (must exist in left data frames).
@@ -241,12 +249,13 @@ liu_max <- function(index) {
 #' Returns merged data frame.
 #'
 #' @examples
+#' \dontrun{
 #' idx <- liu_build(df_b, "id")
 #' merged <- liu_join(df_a, "id", df_b, idx)
 #'
 #' idx <- liu_build(df_b, "id")
 #' merged <- liu_join(df_a, "id", df_b, idx, "left")
-#' 
+#' ?
 #' @export
 liu_join <- function(df_left, column_name, df_right, index, how="inner") {
   if (!is.character(column_name)) {
@@ -274,50 +283,20 @@ liu_join <- function(df_left, column_name, df_right, index, how="inner") {
   id_vector <- df_left[[column_name]]
   
   if (inherits(index, "liu_pointer_int") && !is.integer(id_vector)){
-    stop("Column type and index type dont match")
+    stop("Column type and index type don't match")
   }
   if (inherits(index, "liu_pointer_double") && !is.double(id_vector)){
-    stop("Column type and index type dont match")
+    stop("Column type and index type don't match")
   }
   merged <- .Call("r_inner_join", df_left, column_name, df_right, index, left)
   return (merged)
 }
 #'
 #' @title
-#' Range Sum in LIU Index
-#'
-#' @description
-#' Sum all values within a specified numerical range [start, end) in LIU. 
-#' index. You can leave the start, the end, or both blank for an unbounded sum.
-#'
-#' @param df Data frame on which given index is built.
-#' @param index A LIU index object (external pointer).
-#' @param start Numeric scalar, beginning of the range (inclusive). Must
-#' match index type (int or double).
-#' @param end Numeric scalar, end of the range (exclusive). Must
-#' match index type (int or double).
-#'
-#' @return
-#' Integer vector of row indices for values within the range.
-#' 
-#' @examples
-#' Sum all prices where 10 <= price < 50
-#' idx <- liu_build(df, "price")
-#' liu_sum_range(df, idx, 10, 50)
-#'
-#' @export
-liu_sum_range <- function(df, index, start=NA, end=NA){
-  if (!attributes(index)$column_name %in% names(df)){
-    stop("Index not built on this data frame")
-  }
-  return (sum(df[liu_search_range(idx, start, end), attributes(index)$column_name]))
-}
-#'
-#' @title
 #' Is In LIU Index
 #'
 #' @description
-#' Checks if given keys are present in LIU index.
+#' Checks if given keys are present in LIU index. For NA it returns FALSE.
 #'
 #' @param index A LIU index object (external pointer).
 #' @param keys Vector of keys (int or double must match LIU index type) to check.
@@ -327,12 +306,13 @@ liu_sum_range <- function(df, index, start=NA, end=NA){
 #' Vector of logical values.
 #' 
 #' @examples
+#' \dontrun{
 #' Checks in int index if 2, NA, 5 are present
 #' logical <- liu_isin(idx, as.integer(c(2,NA,5)))
 #' 
 #' Checks in double index if 6.7 is present
 #' logical <- liu_isin(idx, 6.7)
-#'
+#' }
 #' @export
 liu_isin <- function(index, keys){
   if (length(keys) == 0){
@@ -345,10 +325,10 @@ liu_isin <- function(index, keys){
     stop("External pointer is not liu_pointer")
   }
   if (inherits(index, "liu_pointer_int") && !is.integer(keys)){
-    stop("LIU pointer is type int, but given key isnt, R treats normal number as doubles")
+    stop("LIU pointer is type int, but given key isn't, R treats normal number as doubles")
   }
   if (inherits(index, "liu_pointer_double") && !is.double(keys)){
-    stop("LIU pointer is type double, but given key isnt")
+    stop("LIU pointer is type double, but given key isn't")
   }
   res <- logical(length(keys))
   
@@ -359,7 +339,36 @@ liu_isin <- function(index, keys){
   }
   return (res)
 }
-
+#'
+#' @title
+#' Count in Range
+#'
+#' @description
+#' Count all row indices with keys within a specified numerical range [start, end) in LIU. 
+#' index. This operation is very efficient due to the B+Tree structure. You can leave
+#' the start, the end, or both blank for an unbounded search.
+#'
+#' @param index A LIU index object (external pointer).
+#' @param start Numeric scalar, beginning of the range (inclusive). Must
+#' match index type (int or double).
+#' @param end Numeric scalar, end of the range (exclusive). Must
+#' match index type (int or double).
+#'
+#' @return
+#' Integer number of row indices with keys within the range.
+#' 
+#' @examples
+#' \dontrun{
+#' Count rows where 10 <= key < 50
+#' rows <- liu_count(idx, 10, 50)
+#'
+#' Count row indices with keys greater or equal to 2.5
+#' rows <- liu_count(idx, 2.5)
+#' }
+#' @export
+liu_count <- function(index, start=NA, end=NA) {
+  return(sum(as.logical(liu_search_range(index, start, end))))
+}
 
 
 

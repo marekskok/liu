@@ -261,7 +261,7 @@ dual_int_table* inner_join_int(int_table v, int_node* root, bool left, size_t* o
     res.right_indices = malloc(res.capacity*sizeof(int));
     int_table matches;
     
-    // prepering threads to take their parts of loop
+    //prepering threads to take their parts of loop
     int cur_thread_id = omp_get_thread_num();
     int start = cur_thread_id*range;
     int end = (cur_thread_id == max_threads-1) ? (cur_thread_id+1)*range+rest : (cur_thread_id+1)*range;
