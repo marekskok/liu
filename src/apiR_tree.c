@@ -4,7 +4,9 @@
 #include <Rinternals.h>
 #include <string.h>
 #include "declarations.h"
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 void r_index_free(SEXP index_ptr) {
     // This function recognizes index type and uses right free function
@@ -313,7 +315,10 @@ SEXP r_inner_join(SEXP df_left, SEXP col_name, SEXP df_right, SEXP index_ptr, SE
         SEXP column = VECTOR_ELT(df_left, col_left_idx);
 
         size_t total_size = 0;
-        int max_threads = omp_get_max_threads();
+        int max_threads = 1;
+        #ifdef _OPENMP
+        max_threads = omp_get_max_threads();
+        #endif
         int_table id_vector = {INTEGER(column), LENGTH(column)};
         dual_int_table* common_thread_table = inner_join_int(id_vector, root, Rf_asLogical(left), &total_size);
         
@@ -467,7 +472,10 @@ SEXP r_inner_join(SEXP df_left, SEXP col_name, SEXP df_right, SEXP index_ptr, SE
         SEXP column = VECTOR_ELT(df_left, col_left_idx);
 
         size_t total_size = 0;
-        int max_threads = omp_get_max_threads();
+        int max_threads = 1;
+        #ifdef _OPENMP
+        max_threads = omp_get_max_threads();
+        #endif
         double_table id_vector = {REAL(column), LENGTH(column)};
         dual_int_table* common_thread_table = inner_join_double(id_vector, root, Rf_asLogical(left), &total_size);
         

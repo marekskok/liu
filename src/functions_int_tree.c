@@ -5,7 +5,9 @@
 #include"declarations.h"
 #include <R.h>
 #include <Rinternals.h>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 void find_indices_int(int_node* root, int key, int_table* result){
     // Looks for row indices of elements in leafs where keys are the same
@@ -246,9 +248,10 @@ dual_int_table* inner_join_int(int_table v, int_node* root, bool left, size_t* o
     // but put into double_int_table
 
     // Prepering to split threads
-    int max_threads = omp_get_max_threads();
-    int rest = v.size % max_threads;
-    int range = (int)(v.size-rest)/max_threads;
+    int max_threads = 1;
+    #ifdef _OPENMP
+    max_threads = omp_get_max_threads();
+    #endif
     dual_int_table* common_table = malloc(max_threads * sizeof(dual_int_table));
 
     #pragma omp parallel
@@ -259,14 +262,17 @@ dual_int_table* inner_join_int(int_table v, int_node* root, bool left, size_t* o
     res.capacity = v.size;
     res.left_indices = malloc(res.capacity*sizeof(int));
     res.right_indices = malloc(res.capacity*sizeof(int));
-    int_table matches;
+
+    int cur_thread_id = 0;
+    // prepering threads to take their parts of loop
+    #ifdef _OPENMP
+    cur_thread_id = omp_get_thread_num();
+    #endif
     
-    //prepering threads to take their parts of loop
-    int cur_thread_id = omp_get_thread_num();
-    int start = cur_thread_id*range;
-    int end = (cur_thread_id == max_threads-1) ? (cur_thread_id+1)*range+rest : (cur_thread_id+1)*range;
     // For every value in v we look for matches
-    for (size_t i = start; i < end; i++) {
+    #pragma omp for
+    for (size_t i = 0; i < v.size; i++) {
+        int_table matches;
         matches.pointer = NULL, 
         matches.size = 0;
 
@@ -314,3 +320,4 @@ dual_int_table* inner_join_int(int_table v, int_node* root, bool left, size_t* o
 
     return common_table;
 }
+
