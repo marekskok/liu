@@ -12,4 +12,4 @@ Suggests: tinytest
 License: AGPL (>= 3)
 RoxygenNote: 7.3.3
 Encoding: UTF-8
-Built: R 4.6.0; x86_64-redhat-linux-gnu; 2026-05-09 17:14:30 UTC; unix
+Built: R 4.6.0; x86_64-redhat-linux-gnu; 2026-05-09 17:18:16 UTC; unix

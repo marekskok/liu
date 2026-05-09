@@ -1,0 +1,220 @@
+pkgname <- "liu"
+source(file.path(R.home("share"), "R", "examples-header.R"))
+options(warn = 1)
+base::assign(".ExTimings", "liu-Ex.timings", pos = 'CheckExEnv')
+base::cat("name\tuser\tsystem\telapsed\n", file=base::get(".ExTimings", pos = 'CheckExEnv'))
+base::assign(".format_ptime",
+function(x) {
+  if(!is.na(x[4L])) x[1L] <- x[1L] + x[4L]
+  if(!is.na(x[5L])) x[2L] <- x[2L] + x[5L]
+  options(OutDec = '.')
+  format(x[1L:3L], digits = 7L)
+},
+pos = 'CheckExEnv')
+
+### * </HEADER>
+library('liu')
+
+base::assign(".oldSearch", base::search(), pos = 'CheckExEnv')
+base::assign(".old_wd", base::getwd(), pos = 'CheckExEnv')
+cleanEx()
+nameEx("liu_build")
+### * liu_build
+
+flush(stderr()); flush(stdout())
+
+base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+### Name: liu_build
+### Title: Build LIU Index
+### Aliases: liu_build
+
+### ** Examples
+
+## Not run: 
+##D idx <- liu_build(mtcars, "mpg")
+## End(Not run)
+
+
+
+base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+base::cat("liu_build", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+cleanEx()
+nameEx("liu_count")
+### * liu_count
+
+flush(stderr()); flush(stdout())
+
+base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+### Name: liu_count
+### Title: Count in Range
+### Aliases: liu_count
+
+### ** Examples
+
+## Not run: 
+##D Count rows where 10 <= key < 50
+##D rows <- liu_count(idx, 10, 50)
+##D 
+##D Count row indices with keys greater or equal to 2.5
+##D rows <- liu_count(idx, 2.5)
+## End(Not run)
+
+
+
+base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+base::cat("liu_count", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+cleanEx()
+nameEx("liu_free")
+### * liu_free
+
+flush(stderr()); flush(stdout())
+
+base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+### Name: liu_free
+### Title: Free LIU Index Memory
+### Aliases: liu_free
+
+### ** Examples
+
+## Not run: 
+##D idx <- liu_build(mtcars, "hp")
+##D # ...
+##D liu_free(idx)
+## End(Not run)
+
+
+
+base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+base::cat("liu_free", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+cleanEx()
+nameEx("liu_isin")
+### * liu_isin
+
+flush(stderr()); flush(stdout())
+
+base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+### Name: liu_isin
+### Title: Is In LIU Index
+### Aliases: liu_isin
+
+### ** Examples
+
+## Not run: 
+##D Checks in int index if 2, NA, 5 are present
+##D logical <- liu_isin(idx, as.integer(c(2,NA,5)))
+##D 
+##D Checks in double index if 6.7 is present
+##D logical <- liu_isin(idx, 6.7)
+## End(Not run)
+
+
+
+base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+base::cat("liu_isin", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+cleanEx()
+nameEx("liu_max")
+### * liu_max
+
+flush(stderr()); flush(stdout())
+
+base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+### Name: liu_max
+### Title: Maximum Key in LIU Index
+### Aliases: liu_max
+
+### ** Examples
+
+## Not run: 
+##D # Get row indices for the smallest key in the index
+##D max_rows <- liu_search_max(idx)
+## End(Not run)
+
+
+
+base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+base::cat("liu_max", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+cleanEx()
+nameEx("liu_min")
+### * liu_min
+
+flush(stderr()); flush(stdout())
+
+base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+### Name: liu_min
+### Title: Minimum Key in LIU Index
+### Aliases: liu_min
+
+### ** Examples
+
+## Not run: 
+##D # Get row indices for the smallest key in the index
+##D min_rows <- liu_search_min(idx)
+## End(Not run)
+
+
+
+base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+base::cat("liu_min", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+cleanEx()
+nameEx("liu_search")
+### * liu_search
+
+flush(stderr()); flush(stdout())
+
+base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+### Name: liu_search
+### Title: Search for Keys in LIU Index
+### Aliases: liu_search
+
+### ** Examples
+
+## Not run: 
+##D row_idx <- liu_search(idx, 110)
+##D df[row_ids, ]
+##D 
+##D row_ids <- liu_search(idx, c(6.7,21.15))
+##D df[row_idx, ]
+## End(Not run)
+
+
+
+base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+base::cat("liu_search", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+cleanEx()
+nameEx("liu_search_range")
+### * liu_search_range
+
+flush(stderr()); flush(stdout())
+
+base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+### Name: liu_search_range
+### Title: Range Search in LIU Index
+### Aliases: liu_search_range
+
+### ** Examples
+
+## Not run: 
+##D Find rows where 10 <= key < 50
+##D rows <- liu_search_range(idx, 10, 50)
+##D df[rows]
+##D 
+##D Row indices with keys greater or equal to 2.5
+##D rows <- liu_search_range(idx, 2.5)
+## End(Not run)
+
+
+
+base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+base::cat("liu_search_range", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+### * <FOOTER>
+###
+cleanEx()
+options(digits = 7L)
+base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
+grDevices::dev.off()
+###
+### Local variables: ***
+### mode: outline-minor ***
+### outline-regexp: "\\(> \\)?### [*]+" ***
+### End: ***
+quit('no')

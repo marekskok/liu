@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.5.9)  9 MAY 2026 19:14
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.5.9)  9 MAY 2026 19:18
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -357,7 +357,7 @@ File: t1ptm.fd 2001/06/04 font definitions for T1/ptm.
 File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count315
 )
-(/tmp/RtmpY8GPqc/Rd2pdf22536432670d5/Rd2.aux)
+(/tmp/Rtmp01Yomh/Rd2pdf229d2272b6ba2/Rd2.aux)
 \openout1 = `Rd2.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 8.
@@ -394,8 +394,8 @@ LaTeX Font Info:    ... okay on input line 8.
 \everyMPtoPDFconversion=\toks29
 )
 Package hyperref Info: Link coloring ON on input line 8.
- (/tmp/RtmpY8GPqc/Rd2pdf22536432670d5/Rd2.out)
-(/tmp/RtmpY8GPqc/Rd2pdf22536432670d5/Rd2.out)
+ (/tmp/Rtmp01Yomh/Rd2pdf229d2272b6ba2/Rd2.out)
+(/tmp/Rtmp01Yomh/Rd2pdf229d2272b6ba2/Rd2.out)
 \@outlinefile=\write4
 \openout4 = `Rd2.out'.
 
@@ -408,7 +408,7 @@ File: t1zi4.fd 2018/01/14 T1/zi4 (Inconsolata)
 LaTeX Font Info:    Font shape `T1/zi4/m/n' will be
 (Font)              scaled to size 10.0pt on input line 23.
 
-(/tmp/RtmpY8GPqc/Rd2pdf22536432670d5/Rd2.toc
+(/tmp/Rtmp01Yomh/Rd2pdf229d2272b6ba2/Rd2.toc
 LaTeX Font Info:    Trying to load font information for U+msa on input line 1.
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
@@ -430,7 +430,7 @@ st/fonts/enc/dvips/base/8r.enc}{/usr/share/texlive/texmf-dist/fonts/enc/dvips/i
 nconsolata/i4-t1-0.enc}]
 LaTeX Font Info:    Font shape `T1/zi4/m/n' will be
 (Font)              scaled to size 9.0pt on input line 71.
- [2] [3] [4] [5] [6] (/tmp/RtmpY8GPqc/Rd2pdf22536432670d5/Rd2.ind
+ [2] [3] [4] [5] [6] (/tmp/Rtmp01Yomh/Rd2pdf229d2272b6ba2/Rd2.ind
 [7]
 
 LaTeX Font Warning: Font shape `T1/zi4/m/it' undefined
@@ -439,7 +439,7 @@ LaTeX Font Warning: Font shape `T1/zi4/m/it' undefined
 [8
 
 
-]) (/tmp/RtmpY8GPqc/Rd2pdf22536432670d5/Rd2.aux)
+]) (/tmp/Rtmp01Yomh/Rd2pdf229d2272b6ba2/Rd2.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>

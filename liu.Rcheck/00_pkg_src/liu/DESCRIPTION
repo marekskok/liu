@@ -1,0 +1,16 @@
+Package: liu
+Version: 0.1
+Date: 2026-04-30
+Title: Lightweight Index Units
+Description: Implements SQL-like indexes for data frames. Makes searching for keys or merging much faster.
+Authors@R: c(person("Marek", "Skok", role = c("aut", "cre"),
+                     email = "marekskok@pw.edu.pl"))
+Author: Marek Skok [aut, cre]
+Maintainer: Marek Skok <marekskok@pw.edu.pl>
+Imports: stats
+Suggests: tinytest
+License: AGPL (>= 3)
+RoxygenNote: 7.3.3
+Encoding: UTF-8
+NeedsCompilation: yes
+Packaged: 2026-05-09 17:33:04 UTC; pimpus
