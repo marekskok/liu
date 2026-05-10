@@ -1,8 +1,8 @@
 ---
 layout: default
-title: Installation
+title: "Installation"
 nav_order: 2
-parent: Home
+parent: "Home"
 ---
 ### Installation
 ##### Windows

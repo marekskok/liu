@@ -1,7 +1,8 @@
 ---
 layout: default
-title: Functions
+title: "Functions"
 nav_order: 3
+parent: "Home"
 ---
 ### Functions:
 * [liu_build()](#liu_build) - Create an index.

@@ -1,8 +1,8 @@
 ---
 layout: default
-title: Performance
+title: "Performance"
 nav_order: 4
-parent: Home
+parent: "Home"
 ---
 ### Performance
 Node of B+tree in which data is stored contains 16-32 keys, so in the pesymistic case 1'000'000 keys would need 66'669 nodes. In that case height of tree is 5. This means that to find any value among a million rows, the algorithm only needs to perform a handful of memory jumps. You don't have to imagine the speed, see the benchmarks below.
