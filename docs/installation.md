@@ -1,3 +1,9 @@
+---
+layout: default
+title: Installation
+nav_order: 2
+parent: Home
+---
 ### Installation
 ##### Windows
 To installl this packege you need to have Rtools installed on your system.

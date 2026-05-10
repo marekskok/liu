@@ -1,3 +1,8 @@
+---
+layout: default
+title: Functions
+nav_order: 3
+---
 ### Functions:
 * [liu_build()](#liu_build) - Create an index.
 * [liu_free()](#liu_free) - Memory management.

@@ -1,3 +1,9 @@
+---
+layout: default
+title: Home
+nav_order: 1
+has_children: true
+---
 #### Why LIU?
 Standard R data frames performs searches using vector scans (O(n)). This means that to find single value in a million-row table, R must check every single row. For large amounts of data that might not be enough.
 

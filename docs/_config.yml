@@ -2,4 +2,6 @@ title: LIU - Lightning Index Units
 description: Implements SQL-like indexes for data frames in R.
 remote_theme: just-the-docs/just-the-docs
 color_scheme: dark
-logo: /man/figures/liu_logo_2.jpg
+logo: liu_logo_2.jpg
+
+include: ["docs"]
