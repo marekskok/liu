@@ -1,17 +1,4 @@
-<img src = "man/figures/liu_logo_2.jpg" alt="LIU Logo" width = "200">
-
-## LIU - Lightweight Index Units
-
-#### 1. Instalation:
-##### Linux:
-```R
-remotes::install_github("marekskok/liu")
-library(liu)
-```
-#### 2. Describtion:
-This library implements SQL-like indexes for data frames in R. It allows to index columns of data frames by creating light B+trees with pairs key-row_number. Thanks to that searching is O(log n), which makes few other functions (exp. min, max, count, merge) much faster.
-
-#### 3. Funtions:
+### Functions:
 **liu_build()** - This function is foundation of LIU package. It builds index with keys from given column, but ignores NA. For now works only with columns of ints or doubles.
 ```R
 idx <- liu_build(df, "id")
@@ -88,20 +75,3 @@ rows <- liu_count(idx, 10, 50)
 # Count row indices with keys greater or equal to 2.5
 rows <- liu_count(idx, 2.5)
 ```
-#### 4. Performace:
-to be continued...
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

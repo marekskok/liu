@@ -346,7 +346,7 @@ liu_isin <- function(index, keys){
 #' @description
 #' Count all row indices with keys within a specified numerical range [start, end) in LIU. 
 #' index. This operation is very efficient due to the B+Tree structure. You can leave
-#' the start, the end, or both blank for an unbounded search.
+#' the start, the end, or both blank for an unbounded count.
 #'
 #' @param index A LIU index object (external pointer).
 #' @param start Numeric scalar, beginning of the range (inclusive). Must
