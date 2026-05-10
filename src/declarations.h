@@ -1,5 +1,5 @@
-#ifndef TREE_LOGIC_H
-#define TREE_LOGIC_H
+#ifndef DECLARATIONS_H
+#define DECLARATIONS_H
 
 // How many children possible for one node
 #define ORDER 33

@@ -1,96 +1,44 @@
 <img src = "man/figures/liu_logo_2.jpg" alt="LIU Logo" width = "200">
 
-## LIU - Lightweight Index Units
+## LIU - Lightning Index Units
 
-#### 1. Instalation:
-##### Linux:
+##### Windows
+To installl this packege you need to have Rtools installed on your system.
+Download it from [CRAN](https://cran.r-project.org/bin/windows/Rtools/). Then run in R:
+```R
+install.packages("remotes")
+remotes::install_github("marekskok/liu")
+library(liu)
+```
+##### Linux (Ubuntu/Debian):
+Ensure you have:
+```Bash
+sudo apt-get install r-base-dev
+```
+Then in R:
 ```R
 remotes::install_github("marekskok/liu")
 library(liu)
 ```
-#### 2. Describtion:
-This library implements SQL-like indexes for data frames in R. It allows to index columns of data frames by creating light B+trees with pairs key-row_number. Thanks to that searching is O(log n), which makes few other functions (exp. min, max, count, merge) much faster.
+##### macOS 
+To compile C code on macOS, you need Xcode Commnad Line Tools.
+Opend your terminal and run: ```xcode-select --install```
+Then in R:
+```R
+install.packages("remotes")
+remotes::install_github("marekskok/liu")
+library(liu)
+```
 
-#### 3. Funtions:
-**liu_build()** - This function is foundation of LIU package. It builds index with keys from given column, but ignores NA. For now works only with columns of ints or doubles.
-```R
-idx <- liu_build(df, "id")
-```
-It returns external pointer to the c object (B+tree). You can check it's type by calling.
-```R
-> idx
-<pointer: 0x559b1e9c5b10>
-attr(,"class")
-[1] "liu_pointer_int"
-attr(,"column_name")
-[1] "id"
-# or
-> idx
-<pointer: 0x559b1e9c5b10>
-attr(,"class")
-[1] "liu_pointer_double"
-attr(,"column_name")
-[1] "id"
-```
-**liu_free()** - Explicitly releases the memory allocated for the LIU index in C. Use this when index is no longer needed to prevent memory leaks.
-```R
-liu_free(idx)
-```
-**liu_search()** - Performs a fast lookup in the LIU index to find all row indices associated with given vector of keys. It ignores NA in keys vector. Vector of keys (int or double must match LIU index type) to search for.
-```R
-row_idx <- liu_search(idx, 110)
-df[row_ids, ]
+#### Why LIU?
+Standard R data frames performs searches using vector scans (O(n)). This means that to find single value in a million-row table, R must check every single row. For large amounts of data that might not be enough.
 
-row_ids <- liu_search(idx, c(6.7,21.15))
-df[row_idx, ]
-```
-**liu_search_range()** - Finds all row indices with keys within a specified numerical range [start, end) in LIU. index. This operation is very efficient due to the B+Tree structure. You can leave the start, the end, or both blank for an unbounded count.
-```R
-# Find rows where 10 <= key < 50
-rows <- liu_search_range(idx, 10, 50)
-df[rows]
-
-# Row indices with keys greater or equal to 2.5
-rows <- liu_search_range(idx, 2.5)
-```
-**liu_min()** - Search for the smallest key in LIU index and returs their row indices.
-```R
-# Get row indices for the smallest key in the index
-min_rows <- liu_search_min(idx)
-```
-**liu_max()** - Search for the largest key in LIU index and returs their row indices.
-```R
-# Get row indices for the largest key in the index
-max_rows <- liu_search_min(idx)
-```
-**liu_join()** - Performs a high-performance Join between two data frames using a LIU index. For now only inner (default) and left join are available. It takes 4 arguments: left data table, name of one of it's columns, right data table, index built on it. Type of chosen column must match index type. Indexes doesn't take NA, so NA in given column are ignored. It returns the same data frame as merge(df_left, df_right, "id", incomparables = NA)
-```R
-# inner
-idx <- liu_build(df_b, "id")
-merged <- liu_join(df_a, "id", df_b, idx)
-# left
-idx <- liu_build(df_b, "id")
-merged <- liu_join(df_a, "id", df_b, idx, "left")
-```
-**liu_isin()** - Checks if given keys are present in LIU index. For NA it returns FALSE. Returns vector of logical values.
-```R
-# Checks in int index if 2, NA, 5 are present
-logical <- liu_isin(idx, as.integer(c(2,NA,5)))
-
-# Checks in double index if 6.7 is present
-logical <- liu_isin(idx, 6.7)
-```
-**liu_count()** - Count all row indices with keys within a specified numerical range [start, end) in LIU. index. You can leave the start, the end, or both blank for an unbounded search.
-```R
-# Count rows where 10 <= key < 50
-rows <- liu_count(idx, 10, 50)
-
-# Count row indices with keys greater or equal to 2.5
-rows <- liu_count(idx, 2.5)
-```
-#### 4. Performace:
-to be continued...
-
+LIU implements SQL-like indexes for data frames in R. It allows to index columns of data frames by creating light B+trees with pairs ```key-row_number```. This shifts complexity of searching from linear to logaritmic (O(log n)), which makes few other functions (exp. min, max, count, merge) much faster.
+#### Key Advantages
+- **Lightning Fast Lookups:** Instead of scanning the whole column, LIU traverses short tree. 
+- **Ordered Storage:** B+tree keeps keys in leaves ordered, which mkes functions like ```liu_min```, ```liu_max```, or ```liu_search_range``` extremely efficient.
+- **Memory Efficiency:** LIU stores only pairs ```key-row_number``` in compact C-structure, which keeps memory usage reasonable.
+- **Optimized Joins:** By using index on the right data frame of join, ```liu_join()``` avoids expensie O(n*m) Cartesian product complexity and performs in O(n * log m).
 
 
 
