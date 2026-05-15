@@ -9,7 +9,7 @@
 */
 
 /* .Call calls */
-extern SEXP r_build_tree_from_df(SEXP, SEXP);
+extern SEXP r_build_tree_from_df(SEXP);
 extern SEXP r_index_free(SEXP);
 extern SEXP r_inner_join(SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP r_search_by_key(SEXP, SEXP);
@@ -18,7 +18,7 @@ extern SEXP r_search_max(SEXP);
 extern SEXP r_search_min(SEXP);
 
 static const R_CallMethodDef CallEntries[] = {
-    {"r_build_tree_from_df", (DL_FUNC) &r_build_tree_from_df, 2},
+    {"r_build_tree_from_df", (DL_FUNC) &r_build_tree_from_df, 1},
     {"r_index_free",         (DL_FUNC) &r_index_free,         1},
     {"r_inner_join",         (DL_FUNC) &r_inner_join,         5},
     {"r_search_by_key",      (DL_FUNC) &r_search_by_key,      2},

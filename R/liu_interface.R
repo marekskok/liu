@@ -29,13 +29,22 @@ liu_build <- function(df, column_name) {
   if (!(column_name %in% names(df))) {
     stop("Column not found in data frame")
   }
-  col_data <- df[[column_name]]
-  if (!is.numeric(col_data)) {
-    stop("Column must be numeric (integer or double)")
+  column <- df[[column_name]]
+  if (is.numeric(column)) {
+    ptr <- .Call("r_build_tree_from_df", column, PACKAGE = "liu")
+    return(ptr)
   }
-  
-  ptr <- .Call("r_build_tree_from_df", df, as.character(column_name), PACKAGE = "liu")
-  return(ptr)
+  if (is.character(column)){
+    dictionary <- sort(unique(column))
+    
+    ptr <- .Call("r_build_tree_from_df", match(column, dictionary), PACKAGE = "liu")
+    res <- structure(ptr, 
+                     dictionary = dictionary,
+                      class = "liu_pointer_string")
+    return(res)
+  } else {
+    stop("Column must be numeric or charachter type")
+  }
 }
 #'
 #' @title
@@ -65,7 +74,7 @@ liu_search <- function(index, key) {
   if (is.null(index) || typeof(index) != "externalptr") {
     stop("Index must be a valid LIU external pointer.")
   }
-  if (!inherits(index, "liu_pointer_int") && !inherits(index, "liu_pointer_double")){
+  if (!inherits(index, "liu_pointer_int") && !inherits(index, "liu_pointer_double") && !inherits(index, "liu_pointer_string")){
     stop("External pointer is not liu_pointer")
   }
   if (inherits(index, "liu_pointer_int") && !is.integer(key)){
@@ -73,6 +82,15 @@ liu_search <- function(index, key) {
   }
   if (inherits(index, "liu_pointer_double") && !is.double(key)){
     stop("LIU pointer is type double, but given key isn't")
+  }
+  if (inherits(index, "liu_pointer_string") && !is.character(key)){
+    stop("LIU pointer is type string, but given key isn't")
+  }
+  if (inherits(index, "liu_pointer_string") && is.character(key)){
+    ids <- match(key, attributes(index)$dictionary)
+    ids <- as.vector(na.omit(ids))
+    res <- .Call("r_search_by_key", index, ids, PACKAGE = "liu")
+    return(res)
   }
   res <- .Call("r_search_by_key", index, key, PACKAGE = "liu")
   return(res)

@@ -33,30 +33,10 @@ void r_index_free(SEXP index_ptr) {
     }
 }
 
-SEXP r_build_tree_from_df(SEXP df, SEXP col_name) {
+SEXP r_build_tree_from_df(SEXP column) {
     // This function doesn't validate arguments because R file did it.
     // It translate R objects and build C tree.
 
-    // Reading column names as char
-    SEXP names = Rf_getAttrib(df, R_NamesSymbol);
-    const char* target_col = CHAR(Rf_asChar(col_name));
-
-    // Finding index of column
-    int col_idx = -1;
-    int n_cols = (int)LENGTH(df);
-
-    for (int i = 0; i < n_cols; i++) {
-        if (strcmp(CHAR(STRING_ELT(names, i)), target_col) == 0) {
-            col_idx = i;
-            break;
-        }
-    }
-    if (col_idx == -1) {
-        Rf_error("Didn't find column");
-    }
-
-    // Saving column
-    SEXP column = VECTOR_ELT(df, col_idx);
     if (!Rf_isInteger(column) && !Rf_isReal(column)) {
     Rf_error("Column must be integer or double");
     }
@@ -77,11 +57,7 @@ SEXP r_build_tree_from_df(SEXP df, SEXP col_name) {
         Rf_setAttrib(root_ptr, R_ClassSymbol, Rf_mkString("liu_pointer_int"));
         R_RegisterCFinalizerEx(root_ptr, r_index_free, TRUE);
 
-        // Attribute name of column, will be needed later
-        SEXP attr_name = Rf_install("column_name");
-        SEXP attr_value = PROTECT(Rf_mkString(target_col));
-        Rf_setAttrib(root_ptr, attr_name, attr_value);
-        UNPROTECT(2);
+        UNPROTECT(1);
         return root_ptr;
     } else { // when double
         double *data_ptr = REAL(column);
@@ -98,11 +74,7 @@ SEXP r_build_tree_from_df(SEXP df, SEXP col_name) {
         Rf_setAttrib(root_ptr, R_ClassSymbol, Rf_mkString("liu_pointer_double"));
         R_RegisterCFinalizerEx(root_ptr, r_index_free, TRUE);
 
-        // Attribute name of column, will be needed later
-        SEXP attr_name = Rf_install("column_name");
-        SEXP attr_value = PROTECT(Rf_mkString(target_col));
-        Rf_setAttrib(root_ptr, attr_name, attr_value);
-        UNPROTECT(2);
+        UNPROTECT(1);
         return root_ptr;
     }
 }

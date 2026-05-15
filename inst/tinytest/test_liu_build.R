@@ -14,12 +14,10 @@ expect_error(liu_build(df, "id2"))
 # Checking attributes of pointers
 idx1 <- liu_build(df, "id1")
 expect_true(inherits(idx1, "liu_pointer_int"))
-expect_true(attr(idx1, "column_name") == "id1")
 liu_free(idx1)
 
 idx2 <- liu_build(df, "val")
 expect_true(inherits(idx2, "liu_pointer_double"))
-expect_true(attr(idx2, "column_name") == "val")
 liu_free(idx2)
 
 # Empty pointers but still good type
@@ -29,12 +27,10 @@ df <- data.frame(
 )
 idx1 <- liu_build(df, "id1")
 expect_true(inherits(idx1, "liu_pointer_int"))
-expect_true(attr(idx1, "column_name") == "id1")
 liu_free(idx1)
 
 idx2 <- liu_build(df, "val")
 expect_true(inherits(idx2, "liu_pointer_double"))
-expect_true(attr(idx2, "column_name") == "val")
 liu_free(idx2)
 
 

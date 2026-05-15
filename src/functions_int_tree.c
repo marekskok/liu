@@ -42,7 +42,7 @@ void find_indices_int(int_node* root, int key, int_table* result){
 
     // Saving values to the table
     leaf = start_leaf;
-    flag = result->size;
+    flag = 0;
     while(leaf){
         for (size_t i=0; i<leaf->number_of_keys; i++){
             if (leaf->keys[i] == key) result->pointer[j++] = leaf->data.row_indices[i];

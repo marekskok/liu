@@ -20,6 +20,7 @@ sudo apt-get install r-base-dev
 ```
 Then in R:
 ```R
+install.packages("remotes")
 remotes::install_github("marekskok/liu")
 library(liu)
 ```
