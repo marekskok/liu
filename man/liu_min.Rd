@@ -17,7 +17,7 @@ Search for the smallest key in LIU index and returs their row indices.
 }
 \examples{
 \dontrun{
-# Get row indices for the smallest key in the index
-min_rows <- liu_search_min(idx)
+Get row indices for the smallest key in the index
+min_rows <- liu_min(idx)
 }
 }

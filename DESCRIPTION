@@ -1,7 +1,7 @@
 Package: liu
-Version: 0.1
-Date: 2026-04-30
-Title: Lightweight Index Units
+Version: 0.7
+Date: 2026-05-16
+Title: Lightning Index Units
 Description: Implements SQL-like indexes for data frames. Makes searching for keys or merging much faster.
 Authors@R: c(person("Marek", "Skok", role = c("aut", "cre"),
                      email = "marekskok@pw.edu.pl"))

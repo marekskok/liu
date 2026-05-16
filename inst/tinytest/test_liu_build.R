@@ -3,7 +3,8 @@ library(tinytest)
 
 df <- data.frame(
   id1 = as.integer(c(1,2,3)),
-  val = c(2.5,6.7,3.8)
+  val = c(2.5,6.7,3.8),
+  word = c("Alysa", "test", "Liu")
 )
 
 # Wrong arguments tests
@@ -20,18 +21,27 @@ idx2 <- liu_build(df, "val")
 expect_true(inherits(idx2, "liu_pointer_double"))
 liu_free(idx2)
 
+idx3 <- liu_build(df, "word")
+expect_true(inherits(idx3, "liu_pointer_string"))
+liu_free(idx3)
+
 # Empty pointers but still good type
 df <- data.frame(
   id1 = as.integer(c(NA,NA)),
-  val = as.double(c(NA,NA))
+  val = as.double(c(NA,NA)),
+  word = as.character(c(NA,NA))
 )
 idx1 <- liu_build(df, "id1")
 expect_true(inherits(idx1, "liu_pointer_int"))
-liu_free(idx1)
+expect_warning(liu_free(idx1))
 
 idx2 <- liu_build(df, "val")
 expect_true(inherits(idx2, "liu_pointer_double"))
-liu_free(idx2)
+expect_warning(liu_free(idx2))
+
+idx3 <- liu_build(df, "word")
+expect_true(inherits(idx3, "liu_pointer_string"))
+expect_warning(liu_free(idx3))
 
 
 

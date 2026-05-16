@@ -130,7 +130,7 @@ SEXP r_search_by_key(SEXP index_ptr, SEXP keys_to_find) {
 
 SEXP r_search_by_range(SEXP index_ptr, SEXP start, SEXP end) {
     // Checking for index class and calling right function int or double
-    if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_int")) {
+    if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_int") || R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_string")) {
         // Getting root
         int_node* root = (int_node*)R_ExternalPtrAddr(index_ptr);
 
@@ -268,7 +268,7 @@ SEXP r_search_max(SEXP index_ptr) {
 SEXP r_inner_join(SEXP df_left, SEXP col_name, SEXP df_right, SEXP index_ptr, SEXP left){
     // This function is sending arguments to inner_join int or double
     // but it takes argument if it is supposed to be left join
-    if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_int")) {
+    if (R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_int") || R_ExternalPtrTag(index_ptr) == Rf_install("liu_pointer_string") ) {
         // Saving as C objects
         int_node* root = (int_node*)R_ExternalPtrAddr(index_ptr);
         // Finding column

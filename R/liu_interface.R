@@ -116,7 +116,7 @@ liu_free <- function(index) {
   if (is.null(index) || typeof(index) != "externalptr") {
     stop("Index must be a valid LIU external pointer.")
   }
-  if (inherits(index, "liu_pointer_int") || inherits(index, "liu_pointer_double")){
+  if (inherits(index, "liu_pointer_int") || inherits(index, "liu_pointer_double") || inherits(index, "liu_pointer_string")){
   .Call("r_index_free", index, PACKAGE = "liu")
     attributes(index) <- NULL
     index <- NULL
@@ -209,7 +209,7 @@ liu_min <- function(index) {
   if (is.null(index) || typeof(index) != "externalptr") {
     stop("Index must be a valid LIU external pointer.")
   }
-  if (!inherits(index, "liu_pointer_int") && !inherits(index, "liu_pointer_double")){
+  if (!inherits(index, "liu_pointer_int") && !inherits(index, "liu_pointer_double") && !inherits(index, "liu_pointer_string")){
     stop("External pointer is not liu_pointer")
   }
   
@@ -238,7 +238,7 @@ liu_max <- function(index) {
   if (is.null(index) || typeof(index) != "externalptr") {
     stop("Index must be a valid LIU external pointer.")
   }
-  if (!inherits(index, "liu_pointer_int") && !inherits(index, "liu_pointer_double")){
+  if (!inherits(index, "liu_pointer_int") && !inherits(index, "liu_pointer_double") && !inherits(index, "liu_pointer_string")){
     stop("External pointer is not liu_pointer")
   }
   
@@ -288,9 +288,15 @@ liu_join <- function(df_left, column_name, df_right, index, how="inner") {
   if (is.null(index) || typeof(index) != "externalptr") {
     stop("Index must be a valid LIU external pointer.")
   }
-  if (!inherits(index, "liu_pointer_int") && !inherits(index, "liu_pointer_double")){
-    stop("External pointer is not liu_pointer")
+  
+  is_int <- inherits(index, "liu_pointer_int")
+  is_double <- inherits(index, "liu_pointer_double")
+  is_string <- inherits(index, "liu_pointer_string")
+  
+  if (!is_int && !is_double && !is_string){
+    stop("External pointer is not a valid liu_pointer")
   }
+  
   if (how == "inner") {
     left = FALSE
   } else if (how == "left"){
@@ -298,15 +304,44 @@ liu_join <- function(df_left, column_name, df_right, index, how="inner") {
   } else {
     stop("Only inner and left are available")
   }
+  
   id_vector <- df_left[[column_name]]
   
-  if (inherits(index, "liu_pointer_int") && !is.integer(id_vector)){
+  if (is_int && !is.integer(id_vector)){
     stop("Column type and index type don't match")
   }
-  if (inherits(index, "liu_pointer_double") && !is.double(id_vector)){
+  if (is_double && !is.double(id_vector)){
     stop("Column type and index type don't match")
   }
+  if (is_string && !is.character(id_vector)){
+    stop("Column type and index type don't match")
+  }
+  
+  # translating string column to int
+  if (is_string) {
+    dictionary <- attr(index, "dictionary")
+   
+    if (left) {
+    # we need to save words in left df that aren't in right index because of left join
+    left_unique <- unique(id_vector)
+    
+    new_words <- left_unique[!(left_unique %in% dictionary)]
+    new_words <- na.omit(new_words)
+    
+    dictionary <- c(dictionary, new_words)
+    }
+    
+    df_left[[column_name]] <- as.integer(match(id_vector, dictionary))
+    
+    
+  }
+  
   merged <- .Call("r_inner_join", df_left, column_name, df_right, index, left)
+  
+  if (is_string) {
+    merged[[column_name]] <- dictionary[merged[[column_name]]]
+  }
+  
   return (merged)
 }
 #'
@@ -339,7 +374,7 @@ liu_isin <- function(index, keys){
   if (is.null(index) || typeof(index) != "externalptr") {
     stop("Index must be a valid LIU external pointer.")
   }
-  if (!inherits(index, "liu_pointer_int") && !inherits(index, "liu_pointer_double")){
+  if (!inherits(index, "liu_pointer_int") && !inherits(index, "liu_pointer_double") && !inherits(index, "liu_pointer_string")){
     stop("External pointer is not liu_pointer")
   }
   if (inherits(index, "liu_pointer_int") && !is.integer(keys)){
@@ -347,6 +382,9 @@ liu_isin <- function(index, keys){
   }
   if (inherits(index, "liu_pointer_double") && !is.double(keys)){
     stop("LIU pointer is type double, but given key isn't")
+  }
+  if (inherits(index, "liu_pointer_string") && !is.character(keys)){
+    stop("LIU pointer is type string, but given key isn't")
   }
   res <- logical(length(keys))
   
@@ -387,7 +425,49 @@ liu_isin <- function(index, keys){
 liu_count <- function(index, start=NA, end=NA) {
   return(sum(as.logical(liu_search_range(index, start, end))))
 }
-
+#'
+#' @title
+#' Prefix Search in String LIU Index
+#' 
+#' @description
+#' Fast prefix search for string-based LIU index.
+#' It identifies the range of matching keys in logarithmic time and retrieves 
+#' corresponding row indices from the B+Tree.
+#'
+#' @param index A LIU string index object (external pointer).
+#' @param prefix Character scalar.
+#'
+#' @return
+#' An integer vector containing sorted row indices where the keys match the specified prefix.
+#' 
+#' @examples
+#' \dontrun{
+#' # Find all rows where country starts with "Po" (e.g., Poland, Portugal)
+#' rows_po <- liu_search_prefix(idx, "Po")
+#'
+#' # Find all rows starting with a specific letter
+#' rows_a <- liu_search_prefix(idx, "a")
+#' }
+#' @export
+liu_search_prefix <- function(index, prefix) {
+  if (!inherits(index, "liu_pointer_string") || !is.character(prefix)){
+    stop("LIU pointer and prefix must be of type string")
+  }
+  dictionary <- attributes(index)$dictionary
+  
+  matching_indices <- which(startsWith(dictionary, prefix))
+  
+  if (length(matching_indices) == 0) {
+    return(integer(0))
+  }
+  min_idx <- min(matching_indices)
+  max_idx <- max(matching_indices) + 1
+  
+  res <- .Call("r_search_by_range", index, min_idx, max_idx, PACKAGE = "liu")
+  
+  res <- sort(res)
+  return(res)
+}
 
 
 

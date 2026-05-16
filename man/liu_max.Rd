@@ -18,6 +18,6 @@ Search for the largest key in LIU index and returns their row indices.
 \examples{
 \dontrun{
 # Get row indices for the smallest key in the index
-max_rows <- liu_search_max(idx)
+max_rows <- liu_max(idx)
 }
 }

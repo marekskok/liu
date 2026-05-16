@@ -4,7 +4,7 @@
 \name{liu-package}
 \alias{liu}
 \alias{liu-package}
-\title{liu: Lightweight Index Units}
+\title{liu: Lightning Index Units}
 \description{
 Implements SQL-like indexes for data frames. Makes searching for keys or merging much faster.
 }
